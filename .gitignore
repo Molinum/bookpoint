@@ -1,0 +1,18 @@
+# Compilados de Java
+**/target/
+**.class
+
+# Configuraciones del IDE (VS Code / IntelliJ)
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos temporales o de propiedades locales (si aplicara)
+**/mvnw
+**/mvnw.cmd
+**/.mvn/

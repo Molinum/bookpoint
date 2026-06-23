@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: bookpoint-api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: ms-catalogo
+              uri: lb://bookpoint-ms-catalogo
+              predicates:
+                - Path=/api/v1/catalogo/**
+            - id: ms-pedidos
+              uri: lb://bookpoint-ms-pedidos
+              predicates:
+                - Path=/api/v1/pedidos/**
+            - id: ms-inventario
+              uri: lb://bookpoint-ms-inventario
+              predicates:
+                - Path=/api/v1/inventario/**
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
