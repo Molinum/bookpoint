@@ -25,6 +25,14 @@ spring:
               uri: lb://bookpoint-ms-clientes
               predicates:
                 - Path=/api/v1/clientes/**
+            - id: bookpoint-ms-sucursales
+              uri: lb://bookpoint-ms-sucursales
+              predicates:
+                - Path=/api/v1/sucursales/**
+            - id: bookpoint-ms-carrito
+              uri: lb://bookpoint-ms-carrito
+              predicates:
+                - Path=/api/v1/carrito/**
 
 
 eureka:
