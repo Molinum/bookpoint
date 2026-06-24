@@ -1,23 +1,19 @@
 server:
-  port: 8083
+  port: 8084
 
 spring:
   application:
-    name: bookpoint-ms-pedidos
+    name: bookpoint-ms-clientes
   datasource:
-    url: jdbc:mysql://localhost:3306/bookpoint_pedidos_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/bookpoint_clientes_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: password
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    registry-fetch-interval-seconds: 5

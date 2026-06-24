@@ -1,10 +1,10 @@
-package cl.bookpoint.pedidos;
+package cl.bookpoint.clientes;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PedidosApplicationTests {
+class ClientesApplicationTests {
 
 	@Test
 	void contextLoads() {
