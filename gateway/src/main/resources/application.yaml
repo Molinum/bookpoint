@@ -33,6 +33,10 @@ spring:
               uri: lb://bookpoint-ms-carrito
               predicates:
                 - Path=/api/v1/carrito/**
+            - id: bookpoint-ms-pagos
+              uri: lb://bookpoint-ms-pagos
+              predicates:
+                - Path=/api/v1/pagos/**
 
 
 eureka:

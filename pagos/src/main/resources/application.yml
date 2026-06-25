@@ -1,0 +1,19 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: bookpoint-ms-pagos
+  datasource:
+    url: jdbc:mysql://localhost:3306/bookpoint_pagos_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: 
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
