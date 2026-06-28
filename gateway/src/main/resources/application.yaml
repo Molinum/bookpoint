@@ -37,6 +37,10 @@ spring:
               uri: lb://bookpoint-ms-pagos
               predicates:
                 - Path=/api/v1/pagos/**
+            - id: bookpoint-ms-envios
+              uri: lb://bookpoint-ms-envios
+              predicates:
+                - Path=/api/v1/envios/**
 
 
 eureka:
