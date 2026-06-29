@@ -1,11 +1,11 @@
 server:
-  port: 8084
+  port: 8090
 
 spring:
   application:
-    name: bookpoint-ms-clientes
+    name: bookpoint-ms-resenas
   datasource:
-    url: jdbc:mysql://localhost:3306/bookpoint_clientes_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/bookpoint_resenas_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: password
   jpa:
@@ -15,7 +15,7 @@ spring:
 
 springdoc:
   api-docs:
-    path: /api/v1/clientes/v3/api-docs
+    path: /api/v1/resenas/v3/api-docs
 
 eureka:
   client:

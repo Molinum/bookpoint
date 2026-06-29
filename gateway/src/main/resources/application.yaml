@@ -41,7 +41,39 @@ spring:
               uri: lb://bookpoint-ms-envios
               predicates:
                 - Path=/api/v1/envios/**
+            - id: bookpoint-ms-notificaciones
+              uri: lb://bookpoint-ms-notificaciones
+              predicates:
+                - Path=/api/v1/notificaciones/**
+            - id: bookpoint-ms-resenas
+              uri: lb://bookpoint-ms-resenas
+              predicates:
+                - Path=/api/v1/resenas/**
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: 1. Catálogo
+        url: /api/v1/catalogo/v3/api-docs
+      - name: 2. Pedidos
+        url: /api/v1/pedidos/v3/api-docs
+      - name: 3. Inventario
+        url: /api/v1/inventario/v3/api-docs
+      - name: 4. Clientes
+        url: /api/v1/clientes/v3/api-docs
+      - name: 5. Sucursales
+        url: /api/v1/sucursales/v3/api-docs
+      - name: 6. Carrito
+        url: /api/v1/carrito/v3/api-docs
+      - name: 7. Pagos
+        url: /api/v1/pagos/v3/api-docs
+      - name: 8. Envíos
+        url: /api/v1/envios/v3/api-docs
+      - name: 9. Notificaciones
+        url: /api/v1/notificaciones/v3/api-docs
+      - name: 10. Reseñas
+        url: /api/v1/resenas/v3/api-docs
 
 eureka:
   client:

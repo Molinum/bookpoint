@@ -16,8 +16,14 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
+springdoc:
+  api-docs:
+    path: /api/v1/pedidos/v3/api-docs
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
