@@ -3,15 +3,14 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.15</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	<groupId>cl.bookpoint</groupId>
-	<artifactId>sucursales</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>sucursales</name>
+        <groupId>cl.bookpoint</groupId>
+        <artifactId>bookpoint-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath> 
+    </parent>
+
+    <artifactId>sucursales</artifactId>
+    <name>sucursales</name>
 	<description/>
 	<url/>
 	<licenses>
@@ -137,13 +136,6 @@
 
 	<dependencyManagement>
 		<dependencies>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>2025.0.3</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
