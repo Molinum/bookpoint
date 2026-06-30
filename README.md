@@ -1,9 +1,9 @@
 # BookPoint - Backend de Microservicios
 
 Plataforma backend distribuida para la gestión de una cadena de librerías con sucursales y bodegas conectadas. 
-Proyecto desarrollado para la asignatura de Desarrollo Full Stack (Duoc UC).
+Proyecto desarrollado para la asignatura de Desarrollo Full Stack I (Duoc UC).
 
-Cada microservicio es un proyecto Maven independiente construido sobre **Spring Boot 3.3.4**, **Java 17** y su propio esquema de base de datos en un servidor central **MySQL** (Puerto `3306`). La intercomunicación entre servicios se realiza de forma síncrona mediante peticiones REST.
+Cada microservicio es un proyecto Maven independiente construido sobre **Spring Boot 3.5.16**, **Java 21** y su propio esquema de base de datos en un servidor central **MySQL** (Puerto `3306`). La intercomunicación entre servicios se realiza de forma síncrona mediante peticiones REST.
 
 
 ## Microservicios y Puertos
