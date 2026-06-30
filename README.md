@@ -5,11 +5,8 @@ Proyecto desarrollado para la asignatura de Desarrollo Full Stack (Duoc UC).
 
 Cada microservicio es un proyecto Maven independiente construido sobre **Spring Boot 3.3.4**, **Java 17** y su propio esquema de base de datos en un servidor central **MySQL** (Puerto `3306`). La intercomunicación entre servicios se realiza de forma síncrona mediante peticiones REST.
 
----
 
-## 🏛️ Ecosistema de Microservicios y Puertos
-
-El sistema está diseñado bajo el patrón *Database-per-Microservice*, donde ningún servicio comparte tablas ni realiza JOINs directos en el motor de base de datos.
+## Microservicios y Puertos
 
 | #  | Microservicio | Carpeta en VS Code | Puerto | Base de Datos (MySQL 3306) |
 |---|---------------|--------------------|--------|----------------------------|
