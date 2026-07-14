@@ -1,14 +1,14 @@
 package cl.bookpoint.envios.controller;
 
 import cl.bookpoint.envios.model.Envio;
-import cl.bookpoint.envios.repository.EnvioRepository;
+import cl.bookpoint.envios.service.EnvioService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/envios")
@@ -16,25 +16,32 @@ import java.util.UUID;
 @Tag(name = "Envíos", description = "Endpoints de logística, despacho y seguimiento de pedidos")
 public class EnvioController {
 
-    private final EnvioRepository envioRepository;
+    private final EnvioService envioService;
 
     @PostMapping
     public ResponseEntity<Envio> crearEnvio(@RequestBody Envio envio) {
-        // Generación automatizada del código de seguimiento para logística
-        envio.setCodigoSeguimiento("BP-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
-        envio.setEstado("PREPARACION");
-        return new ResponseEntity<>(envioRepository.save(envio), HttpStatus.CREATED);
+        return new ResponseEntity<>(envioService.crearEnvio(envio), HttpStatus.CREATED);
     }
 
     @GetMapping("/track/{codigo}")
     public ResponseEntity<Envio> consultarTracking(@PathVariable String codigo) {
-        return envioRepository.findByCodigoSeguimiento(codigo)
+        return envioService.obtenerPorCodigo(codigo)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
     public ResponseEntity<List<Envio>> listarTodos() {
-        return ResponseEntity.ok(envioRepository.findAll());
+        return ResponseEntity.ok(envioService.listarTodos());
+    }
+
+    @PatchMapping("/{id}/estado")
+    public ResponseEntity<Envio> actualizarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(envioService.actualizarEstado(id, body.get("estado")));
+    }
+
+    @GetMapping("/pedido/{pedidoId}")
+    public ResponseEntity<List<Envio>> obtenerPorPedido(@PathVariable Long pedidoId) {
+        return ResponseEntity.ok(envioService.obtenerPorPedido(pedidoId));
     }
 }
