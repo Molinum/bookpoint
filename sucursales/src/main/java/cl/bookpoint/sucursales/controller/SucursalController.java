@@ -1,7 +1,7 @@
 package cl.bookpoint.sucursales.controller;
 
 import cl.bookpoint.sucursales.model.Sucursal;
-import cl.bookpoint.sucursales.repository.SucursalRepository;
+import cl.bookpoint.sucursales.service.SucursalService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,15 +15,15 @@ import java.util.List;
 @Tag(name = "Sucursales", description = "Endpoints de gestión de tiendas físicas")
 public class SucursalController {
 
-    private final SucursalRepository sucursalRepository;
+    private final SucursalService sucursalService;
 
     @PostMapping
     public ResponseEntity<Sucursal> crear(@RequestBody Sucursal sucursal) {
-        return new ResponseEntity<>(sucursalRepository.save(sucursal), HttpStatus.CREATED);
+        return new ResponseEntity<>(sucursalService.guardarSucursal(sucursal), HttpStatus.CREATED);
     }
 
     @GetMapping
     public ResponseEntity<List<Sucursal>> listar() {
-        return ResponseEntity.ok(sucursalRepository.findAll());
+        return ResponseEntity.ok(sucursalService.obtenerTodas());
     }
 }
