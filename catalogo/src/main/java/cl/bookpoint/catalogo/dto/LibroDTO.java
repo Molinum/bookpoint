@@ -1,5 +1,7 @@
 package cl.bookpoint.catalogo.dto;
 
+import org.springframework.hateoas.server.core.Relation;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -10,7 +12,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Relation(collectionRelation = "libros", itemRelation = "libro", value = "libro")
 public class LibroDTO {
+    private Long id;
+    
     @NotBlank(message = "El título no puede estar vacío")
     private String titulo;
 
