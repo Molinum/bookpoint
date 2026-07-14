@@ -34,7 +34,7 @@ public class LibroController {
     @Operation(summary = "Registrar un nuevo libro")
     public ResponseEntity<Libro> crear(@Valid @RequestBody LibroDTO libroDTO) { 
         return new ResponseEntity<>(libroService.guardarLibro(libroDTO), HttpStatus.CREATED);
-}
+    }
 
     @GetMapping
     @Operation(summary = "Listar todos los Libros", description = "Permite obtener la lista completa de libros en el catálogo")
@@ -46,7 +46,7 @@ public class LibroController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Libro> obtenerPorId(@PathVariable Long id) {
-    return ResponseEntity.ok(libroService.obtenerPorId(id)); // Asegúrate de tener este método en el Service
-}
+    return ResponseEntity.ok(libroService.obtenerPorId(id));
+    }
     
 }
