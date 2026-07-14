@@ -26,4 +26,20 @@ public class SucursalController {
     public ResponseEntity<List<Sucursal>> listar() {
         return ResponseEntity.ok(sucursalService.obtenerTodas());
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Sucursal> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(sucursalService.obtenerPorId(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Sucursal> actualizar(@PathVariable Long id, @RequestBody Sucursal sucursal) {
+        return ResponseEntity.ok(sucursalService.actualizarSucursal(id, sucursal));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        sucursalService.eliminarSucursal(id);
+        return ResponseEntity.noContent().build();
+    }
 }
