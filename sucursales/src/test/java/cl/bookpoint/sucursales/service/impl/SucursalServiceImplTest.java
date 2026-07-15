@@ -40,12 +40,15 @@ class SucursalServiceImplTest {
         sucursal.setNombre("Concepción Centro");
         sucursal.setCiudad("Concepción");
 
-        Sucursal guardada = new Sucursal();
-        guardada.setId(1L);
-        guardada.setNombre("Concepción Centro");
-        guardada.setCiudad("Concepción");
-
-        when(sucursalRepository.save(any(Sucursal.class))).thenReturn(guardada);
+        // Simulamos el auto-incremento de la BD sobre el objeto que el propio
+        // servicio construyó, en vez de devolver un objeto hardcodeado aparte:
+        // así el test corrobora que guardarSucursal() efectivamente propaga
+        // nombre/ciudad, no solo el cableado de Mockito.
+        when(sucursalRepository.save(any(Sucursal.class))).thenAnswer(invocacion -> {
+            Sucursal guardada = invocacion.getArgument(0);
+            guardada.setId(1L);
+            return guardada;
+        });
 
         // WHEN
         Sucursal resultado = sucursalService.guardarSucursal(sucursal);
@@ -53,6 +56,8 @@ class SucursalServiceImplTest {
         // THEN
         assertNotNull(resultado);
         assertEquals(1L, resultado.getId());
+        assertEquals("Concepción Centro", resultado.getNombre());
+        assertEquals("Concepción", resultado.getCiudad());
         verify(sucursalRepository, times(1)).save(any(Sucursal.class));
     }
 

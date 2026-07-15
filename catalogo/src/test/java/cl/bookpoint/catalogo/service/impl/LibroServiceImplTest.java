@@ -42,14 +42,15 @@ class LibroServiceImplTest {
         dto.setAutor("Stephen King");
         dto.setPrecio((double)15990);
 
-        Libro libroGuardado = new Libro();
-        libroGuardado.setId(1L);
-        libroGuardado.setTitulo(dto.getTitulo());
-        libroGuardado.setAutor(dto.getAutor());
-        libroGuardado.setPrecio(dto.getPrecio());
-
-        // Simulamos que al invocar save() devuelva el objeto con ID
-        when(libroRepository.save(any(Libro.class))).thenReturn(libroGuardado);
+        // Simulamos el auto-incremento de la BD sobre el objeto que el propio
+        // servicio construyó, en vez de devolver un objeto hardcodeado aparte:
+        // así el test corrobora el mapeo DTO->Entidad real de guardarLibro(),
+        // no solo el cableado de Mockito.
+        when(libroRepository.save(any(Libro.class))).thenAnswer(invocacion -> {
+            Libro libroGuardado = invocacion.getArgument(0);
+            libroGuardado.setId(1L);
+            return libroGuardado;
+        });
 
         // 2. WHEN (Ejecutar la acción)
         Libro resultado = libroService.guardarLibro(dto);
