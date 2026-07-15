@@ -24,13 +24,18 @@ import cl.bookpoint.envios.client.PedidoClient;
 import cl.bookpoint.envios.dto.PedidoRentDTO;
 import cl.bookpoint.envios.exception.RecursoNoEncontradoException;
 import cl.bookpoint.envios.model.Envio;
+import cl.bookpoint.envios.model.HistorialEstado;
 import cl.bookpoint.envios.repository.EnvioRepository;
+import cl.bookpoint.envios.repository.HistorialEstadoRepository;
 
 @ExtendWith(MockitoExtension.class)
 class EnvioServiceImplTest {
 
     @Mock
     private EnvioRepository envioRepository;
+
+    @Mock
+    private HistorialEstadoRepository historialEstadoRepository;
 
     @Mock
     private PedidoClient pedidoClient;
@@ -58,6 +63,7 @@ class EnvioServiceImplTest {
         assertNotNull(resultado.getCodigoSeguimiento());
         assertTrue(resultado.getCodigoSeguimiento().startsWith("BP-"));
         verify(envioRepository, times(1)).save(any(Envio.class));
+        verify(historialEstadoRepository, times(1)).save(any(HistorialEstado.class));
     }
 
     @Test
@@ -141,6 +147,7 @@ class EnvioServiceImplTest {
         // THEN
         assertEquals("EN_CAMINO", resultado.getEstado());
         verify(envioRepository, times(1)).save(envio);
+        verify(historialEstadoRepository, times(1)).save(any(HistorialEstado.class));
     }
 
     @Test
@@ -181,5 +188,34 @@ class EnvioServiceImplTest {
         // THEN
         assertEquals(1, resultado.size());
         verify(envioRepository, times(1)).findByPedidoId(pedidoId);
+    }
+
+    @Test
+    @DisplayName("Debería obtener el historial de estados de un envío existente")
+    void deberiaObtenerHistorialDeEnvioExistente() {
+        // GIVEN
+        Long envioId = 1L;
+        HistorialEstado entrada = new HistorialEstado();
+        entrada.setEstado("PREPARACION");
+        when(envioRepository.existsById(envioId)).thenReturn(true);
+        when(historialEstadoRepository.findByEnvio_IdOrderByFechaAsc(envioId)).thenReturn(List.of(entrada));
+
+        // WHEN
+        List<HistorialEstado> resultado = envioService.obtenerHistorial(envioId);
+
+        // THEN
+        assertEquals(1, resultado.size());
+        assertEquals("PREPARACION", resultado.get(0).getEstado());
+    }
+
+    @Test
+    @DisplayName("Debería lanzar RecursoNoEncontradoException al pedir historial de un envío inexistente")
+    void deberiaLanzarExcepcionAlObtenerHistorialDeEnvioInexistente() {
+        // GIVEN
+        when(envioRepository.existsById(99L)).thenReturn(false);
+
+        // WHEN & THEN
+        assertThrows(RecursoNoEncontradoException.class, () -> envioService.obtenerHistorial(99L));
+        verify(historialEstadoRepository, never()).findByEnvio_IdOrderByFechaAsc(any());
     }
 }

@@ -3,12 +3,15 @@ package cl.bookpoint.envios.service.impl;
 import cl.bookpoint.envios.client.PedidoClient;
 import cl.bookpoint.envios.exception.RecursoNoEncontradoException;
 import cl.bookpoint.envios.model.Envio;
+import cl.bookpoint.envios.model.HistorialEstado;
 import cl.bookpoint.envios.repository.EnvioRepository;
+import cl.bookpoint.envios.repository.HistorialEstadoRepository;
 import cl.bookpoint.envios.service.EnvioService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -21,6 +24,7 @@ public class EnvioServiceImpl implements EnvioService {
     private static final Set<String> ESTADOS_VALIDOS = Set.of("PREPARACION", "EN_CAMINO", "ENTREGADO");
 
     private final EnvioRepository envioRepository;
+    private final HistorialEstadoRepository historialEstadoRepository;
     private final PedidoClient pedidoClient;
 
     @Override
@@ -39,7 +43,9 @@ public class EnvioServiceImpl implements EnvioService {
         envio.setId(null);
         envio.setCodigoSeguimiento("BP-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
         envio.setEstado("PREPARACION");
-        return envioRepository.save(envio);
+        Envio creado = envioRepository.save(envio);
+        registrarHistorial(creado, "PREPARACION");
+        return creado;
     }
 
     @Override
@@ -60,11 +66,29 @@ public class EnvioServiceImpl implements EnvioService {
         Envio envio = envioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Envío no encontrado con id: " + id));
         envio.setEstado(nuevoEstado);
-        return envioRepository.save(envio);
+        Envio actualizado = envioRepository.save(envio);
+        registrarHistorial(actualizado, nuevoEstado);
+        return actualizado;
     }
 
     @Override
     public List<Envio> obtenerPorPedido(Long pedidoId) {
         return envioRepository.findByPedidoId(pedidoId);
+    }
+
+    @Override
+    public List<HistorialEstado> obtenerHistorial(Long envioId) {
+        if (!envioRepository.existsById(envioId)) {
+            throw new RecursoNoEncontradoException("Envío no encontrado con id: " + envioId);
+        }
+        return historialEstadoRepository.findByEnvio_IdOrderByFechaAsc(envioId);
+    }
+
+    private void registrarHistorial(Envio envio, String estado) {
+        HistorialEstado entrada = new HistorialEstado();
+        entrada.setEnvio(envio);
+        entrada.setEstado(estado);
+        entrada.setFecha(LocalDateTime.now());
+        historialEstadoRepository.save(entrada);
     }
 }

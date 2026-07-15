@@ -1,6 +1,7 @@
 package cl.bookpoint.envios.controller;
 
 import cl.bookpoint.envios.model.Envio;
+import cl.bookpoint.envios.model.HistorialEstado;
 import cl.bookpoint.envios.service.EnvioService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -68,6 +69,17 @@ public class EnvioController {
 
         CollectionModel<EntityModel<Envio>> collectionModel = CollectionModel.of(envios);
         collectionModel.add(linkTo(methodOn(EnvioController.class).obtenerPorPedido(pedidoId)).withSelfRel());
+        return ResponseEntity.ok(collectionModel);
+    }
+
+    @GetMapping("/{id}/historial")
+    public ResponseEntity<CollectionModel<EntityModel<HistorialEstado>>> obtenerHistorial(@PathVariable Long id) {
+        List<EntityModel<HistorialEstado>> historial = envioService.obtenerHistorial(id).stream()
+                .map(EntityModel::of)
+                .toList();
+
+        CollectionModel<EntityModel<HistorialEstado>> collectionModel = CollectionModel.of(historial);
+        collectionModel.add(linkTo(methodOn(EnvioController.class).obtenerHistorial(id)).withSelfRel());
         return ResponseEntity.ok(collectionModel);
     }
 }

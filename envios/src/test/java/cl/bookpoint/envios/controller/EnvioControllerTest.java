@@ -2,6 +2,7 @@ package cl.bookpoint.envios.controller;
 
 import cl.bookpoint.envios.exception.RecursoNoEncontradoException;
 import cl.bookpoint.envios.model.Envio;
+import cl.bookpoint.envios.model.HistorialEstado;
 import cl.bookpoint.envios.service.EnvioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -129,5 +130,28 @@ class EnvioControllerTest {
 
         mockMvc.perform(get("/api/v1/envios/pedido/5"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/envios/{id}/historial debería retornar 200 con la colección")
+    void obtenerHistorialDeberiaRetornar200() throws Exception {
+        HistorialEstado entrada = new HistorialEstado();
+        entrada.setId(1L);
+        entrada.setEstado("PREPARACION");
+        when(envioService.obtenerHistorial(1L)).thenReturn(List.of(entrada));
+
+        mockMvc.perform(get("/api/v1/envios/1/historial"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.historialEstadoList[0].estado").value("PREPARACION"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/envios/{id}/historial debería retornar 404 cuando el envío no existe")
+    void obtenerHistorialDeberiaRetornar404CuandoEnvioNoExiste() throws Exception {
+        when(envioService.obtenerHistorial(99L))
+                .thenThrow(new RecursoNoEncontradoException("Envío no encontrado con id: 99"));
+
+        mockMvc.perform(get("/api/v1/envios/99/historial"))
+                .andExpect(status().isNotFound());
     }
 }

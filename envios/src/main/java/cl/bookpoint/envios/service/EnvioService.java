@@ -1,6 +1,7 @@
 package cl.bookpoint.envios.service;
 
 import cl.bookpoint.envios.model.Envio;
+import cl.bookpoint.envios.model.HistorialEstado;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,4 +11,5 @@ public interface EnvioService {
     List<Envio> listarTodos();
     Envio actualizarEstado(Long id, String nuevoEstado);
     List<Envio> obtenerPorPedido(Long pedidoId);
+    List<HistorialEstado> obtenerHistorial(Long envioId);
 }

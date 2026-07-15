@@ -330,6 +330,20 @@
           }
         },
         {
+          "name": "Obtener Historial de Estado del Envío",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Incluye al menos el estado inicial PREPARACION', () => {",
+            "  const json = pm.response.json();",
+            "  pm.expect(json._embedded.historialEstadoList.length).to.be.above(0);",
+            "});"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{envios_url}}/{{envioId}}/historial", "host": ["{{envios_url}}"], "path": ["{{envioId}}", "historial"] }
+          }
+        },
+        {
           "name": "Obtener Envíos por Pedido",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));"

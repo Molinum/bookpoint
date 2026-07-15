@@ -62,8 +62,17 @@ public class DataSeeder implements CommandLineRunner {
             envio.setComuna(faker.options().nextElement(COMUNAS));
             envio.setTransportista(faker.options().nextElement(TRANSPORTISTAS));
             try {
-                envioService.crearEnvio(envio);
+                Envio creado = envioService.crearEnvio(envio);
                 creados++;
+                // Avanza el estado de algunos envíos para que el historial (relación @OneToMany
+                // con HistorialEstado) tenga más de una entrada en la demo, no solo el estado inicial.
+                int avance = faker.number().numberBetween(0, 3);
+                if (avance >= 1) {
+                    envioService.actualizarEstado(creado.getId(), "EN_CAMINO");
+                }
+                if (avance == 2) {
+                    envioService.actualizarEstado(creado.getId(), "ENTREGADO");
+                }
             } catch (Exception e) {
                 log.debug("No se pudo crear un envío de seed para el pedido {}: {}", pedido.getId(), e.getMessage());
             }
