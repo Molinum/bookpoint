@@ -17,6 +17,8 @@ public class PagoServiceImpl implements PagoService {
 
     @Override
     public Pago procesarPago(Pago pago) {
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        pago.setId(null);
         pago.setEstado("APROBADO");
         pago.setCodigoTransaccion(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         return pagoRepository.save(pago);

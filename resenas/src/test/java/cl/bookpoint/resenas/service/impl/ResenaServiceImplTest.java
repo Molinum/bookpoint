@@ -56,6 +56,22 @@ class ResenaServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al crear una reseña")
+    void deberiaIgnorarIdEnviadoAlCrear() {
+        // GIVEN
+        Resena resena = resenaConEstrellas(4);
+        resena.setId(999L);
+        when(resenaRepository.save(any(Resena.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        resenaService.crearResena(resena);
+
+        // THEN
+        assertEquals(null, resena.getId());
+        verify(resenaRepository, times(1)).save(resena);
+    }
+
+    @Test
     @DisplayName("Debería lanzar IllegalArgumentException con estrellas fuera de rango")
     void deberiaLanzarExcepcionConEstrellasFueraDeRango() {
         // GIVEN

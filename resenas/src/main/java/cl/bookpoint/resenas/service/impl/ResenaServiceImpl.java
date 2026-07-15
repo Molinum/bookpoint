@@ -19,6 +19,8 @@ public class ResenaServiceImpl implements ResenaService {
         if (resena.getEstrellas() == null || resena.getEstrellas() < 1 || resena.getEstrellas() > 5) {
             throw new IllegalArgumentException("Las estrellas deben estar entre 1 y 5");
         }
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        resena.setId(null);
         return resenaRepository.save(resena);
     }
 

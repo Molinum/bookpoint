@@ -21,6 +21,8 @@ public class EnvioServiceImpl implements EnvioService {
 
     @Override
     public Envio crearEnvio(Envio envio) {
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        envio.setId(null);
         envio.setCodigoSeguimiento("BP-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase());
         envio.setEstado("PREPARACION");
         return envioRepository.save(envio);

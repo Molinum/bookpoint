@@ -32,6 +32,24 @@ class ClienteServiceImplTest {
     private ClienteServiceImpl clienteService;
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al crear un cliente")
+    void deberiaIgnorarIdEnviadoAlCrear() {
+        // GIVEN
+        Cliente cliente = new Cliente();
+        cliente.setId(999L);
+        cliente.setNombre("Cliente Con Id Falso");
+
+        when(clienteRepository.save(any(Cliente.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        clienteService.crearCliente(cliente);
+
+        // THEN
+        assertEquals(null, cliente.getId());
+        verify(clienteRepository, times(1)).save(cliente);
+    }
+
+    @Test
     @DisplayName("Debería crear un cliente exitosamente")
     void deberiaCrearClienteExitosamente() {
         // GIVEN

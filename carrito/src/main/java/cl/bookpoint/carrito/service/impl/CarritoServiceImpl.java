@@ -15,6 +15,8 @@ public class CarritoServiceImpl implements CarritoService {
 
     @Override
     public CarritoItem agregarItem(CarritoItem item) {
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        item.setId(null);
         return carritoItemRepository.save(item);
     }
 

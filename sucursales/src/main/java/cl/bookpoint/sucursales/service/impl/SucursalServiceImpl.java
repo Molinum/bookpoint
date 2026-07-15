@@ -15,6 +15,8 @@ public class SucursalServiceImpl implements SucursalService {
 
     @Override
     public Sucursal guardarSucursal(Sucursal sucursal) {
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        sucursal.setId(null);
         return sucursalRepository.save(sucursal);
     }
 

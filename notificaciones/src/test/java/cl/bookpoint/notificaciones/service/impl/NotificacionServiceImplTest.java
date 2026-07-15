@@ -50,6 +50,24 @@ class NotificacionServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al enviar una notificación")
+    void deberiaIgnorarIdEnviadoAlEnviar() {
+        // GIVEN
+        Notificacion notificacion = new Notificacion();
+        notificacion.setId(999L);
+        notificacion.setDestinatario("ana@correo.cl");
+
+        when(notificacionRepository.save(any(Notificacion.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        notificacionService.enviarNotificacion(notificacion);
+
+        // THEN
+        assertEquals(null, notificacion.getId());
+        verify(notificacionRepository, times(1)).save(notificacion);
+    }
+
+    @Test
     @DisplayName("Debería obtener el historial completo de notificaciones")
     void deberiaListarHistorial() {
         // GIVEN

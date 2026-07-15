@@ -54,6 +54,24 @@ class EnvioServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al crear un envío")
+    void deberiaIgnorarIdEnviadoAlCrear() {
+        // GIVEN
+        Envio envio = new Envio();
+        envio.setId(999L);
+        envio.setPedidoId(1L);
+
+        when(envioRepository.save(any(Envio.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        envioService.crearEnvio(envio);
+
+        // THEN
+        assertEquals(null, envio.getId());
+        verify(envioRepository, times(1)).save(envio);
+    }
+
+    @Test
     @DisplayName("Debería obtener un envío por código de seguimiento existente")
     void deberiaObtenerEnvioPorCodigoExistente() {
         // GIVEN

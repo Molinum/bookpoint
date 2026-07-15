@@ -56,6 +56,24 @@ class SucursalServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al guardar una sucursal")
+    void deberiaIgnorarIdEnviadoAlGuardar() {
+        // GIVEN
+        Sucursal sucursal = new Sucursal();
+        sucursal.setId(999L);
+        sucursal.setNombre("Temuco");
+
+        when(sucursalRepository.save(any(Sucursal.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        sucursalService.guardarSucursal(sucursal);
+
+        // THEN
+        assertEquals(null, sucursal.getId());
+        verify(sucursalRepository, times(1)).save(sucursal);
+    }
+
+    @Test
     @DisplayName("Debería obtener la lista completa de sucursales")
     void deberiaObtenerTodasLasSucursales() {
         // GIVEN

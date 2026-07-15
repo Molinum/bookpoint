@@ -52,6 +52,24 @@ class PagoServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al procesar un pago")
+    void deberiaIgnorarIdEnviadoAlProcesar() {
+        // GIVEN
+        Pago pago = new Pago();
+        pago.setId(999L);
+        pago.setPedidoId(1L);
+
+        when(pagoRepository.save(any(Pago.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        pagoService.procesarPago(pago);
+
+        // THEN
+        assertEquals(null, pago.getId());
+        verify(pagoRepository, times(1)).save(pago);
+    }
+
+    @Test
     @DisplayName("Debería obtener la lista completa de pagos")
     void deberiaListarPagos() {
         // GIVEN

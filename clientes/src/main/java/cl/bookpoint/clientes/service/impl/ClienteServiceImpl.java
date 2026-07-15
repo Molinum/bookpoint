@@ -15,6 +15,9 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     public Cliente crearCliente(Cliente cliente) {
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        // Sin esto, un id existente hace que JPA intente un merge/update en vez de un insert.
+        cliente.setId(null);
         return clienteRepository.save(cliente);
     }
 

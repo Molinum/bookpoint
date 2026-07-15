@@ -59,6 +59,24 @@ class CarritoServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería ignorar un id enviado en el body al agregar un ítem")
+    void deberiaIgnorarIdEnviadoAlAgregar() {
+        // GIVEN
+        CarritoItem item = new CarritoItem();
+        item.setId(999L);
+        item.setClienteId(1L);
+
+        when(carritoItemRepository.save(any(CarritoItem.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        // WHEN
+        carritoService.agregarItem(item);
+
+        // THEN
+        assertEquals(null, item.getId());
+        verify(carritoItemRepository, times(1)).save(item);
+    }
+
+    @Test
     @DisplayName("Debería obtener los ítems del carrito de un cliente")
     void deberiaObtenerItemsPorCliente() {
         // GIVEN

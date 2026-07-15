@@ -17,6 +17,8 @@ public class NotificacionServiceImpl implements NotificacionService {
 
     @Override
     public Notificacion enviarNotificacion(Notificacion notificacion) {
+        // Ignora cualquier id que venga en el body: esto es una creación, no un update.
+        notificacion.setId(null);
         notificacion.setFechaEnvio(LocalDateTime.now());
         return notificacionRepository.save(notificacion);
     }
