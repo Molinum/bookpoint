@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import cl.bookpoint.catalogo.dto.LibroDTO;
+import cl.bookpoint.catalogo.exceptions.RecursoNoEncontradoException;
 import cl.bookpoint.catalogo.model.Libro;
 import cl.bookpoint.catalogo.repository.LibroRepository;
 import cl.bookpoint.catalogo.service.LibroService;
@@ -33,6 +34,6 @@ public class LibroServiceImpl implements LibroService {
     @Override
     public Libro obtenerPorId(Long id) {
         return libroRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Libro no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Libro no encontrado con id: " + id));
     }
 }

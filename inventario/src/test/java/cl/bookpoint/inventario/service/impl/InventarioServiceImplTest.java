@@ -25,6 +25,7 @@ import org.springframework.hateoas.EntityModel;
 import cl.bookpoint.inventario.client.CatalogoClient;
 import cl.bookpoint.inventario.dto.InventarioDTO;
 import cl.bookpoint.inventario.dto.LibroRentDTO;
+import cl.bookpoint.inventario.exception.RecursoNoEncontradoException;
 import cl.bookpoint.inventario.model.Inventario;
 import cl.bookpoint.inventario.repository.InventarioRepository;
 import feign.FeignException;
@@ -86,7 +87,7 @@ class InventarioServiceImplTest {
         when(catalogoClient.obtenerLibroPorId(10L)).thenThrow(notFound);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> inventarioService.registrarStock(dto));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> inventarioService.registrarStock(dto));
         assertEquals("El libro con ID 10 no existe en el catálogo.", excepcion.getMessage());
         verify(inventarioRepository, never()).save(any(Inventario.class));
     }
@@ -99,7 +100,7 @@ class InventarioServiceImplTest {
         when(catalogoClient.obtenerLibroPorId(10L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> inventarioService.registrarStock(dto));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> inventarioService.registrarStock(dto));
         assertEquals("El libro con ID 10 no existe en el catálogo.", excepcion.getMessage());
         verify(inventarioRepository, never()).save(any(Inventario.class));
     }
@@ -158,7 +159,7 @@ class InventarioServiceImplTest {
         when(inventarioRepository.findByLibroIdAndSucursal(10L, "La Serena")).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> inventarioService.descontarStock(10L, "La Serena", 1));
         assertEquals("No existe registro de stock para el libro en la sucursal: La Serena", excepcion.getMessage());
         verify(inventarioRepository, never()).save(any(Inventario.class));
@@ -172,7 +173,7 @@ class InventarioServiceImplTest {
         when(inventarioRepository.findByLibroIdAndSucursal(10L, "Concepción")).thenReturn(Optional.of(inventario));
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        IllegalArgumentException excepcion = assertThrows(IllegalArgumentException.class,
                 () -> inventarioService.descontarStock(10L, "Concepción", 5));
         assertEquals("Stock insuficiente en Concepción. Disponible: 1", excepcion.getMessage());
         verify(inventarioRepository, never()).save(any(Inventario.class));

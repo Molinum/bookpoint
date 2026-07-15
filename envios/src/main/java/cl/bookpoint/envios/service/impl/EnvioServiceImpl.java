@@ -1,6 +1,7 @@
 package cl.bookpoint.envios.service.impl;
 
 import cl.bookpoint.envios.client.PedidoClient;
+import cl.bookpoint.envios.exception.RecursoNoEncontradoException;
 import cl.bookpoint.envios.model.Envio;
 import cl.bookpoint.envios.repository.EnvioRepository;
 import cl.bookpoint.envios.service.EnvioService;
@@ -26,10 +27,10 @@ public class EnvioServiceImpl implements EnvioService {
     public Envio crearEnvio(Envio envio) {
         try {
             if (pedidoClient.obtenerPedidoPorId(envio.getPedidoId()) == null) {
-                throw new RuntimeException("El pedido con ID " + envio.getPedidoId() + " no existe.");
+                throw new RecursoNoEncontradoException("El pedido con ID " + envio.getPedidoId() + " no existe.");
             }
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("El pedido con ID " + envio.getPedidoId() + " no existe.");
+            throw new RecursoNoEncontradoException("El pedido con ID " + envio.getPedidoId() + " no existe.");
         } catch (FeignException e) {
             throw new RuntimeException("No se pudo conectar con el servicio de pedidos: " + e.getMessage());
         }
@@ -57,7 +58,7 @@ public class EnvioServiceImpl implements EnvioService {
             throw new IllegalArgumentException("Estado inválido: " + nuevoEstado);
         }
         Envio envio = envioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Envío no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Envío no encontrado con id: " + id));
         envio.setEstado(nuevoEstado);
         return envioRepository.save(envio);
     }

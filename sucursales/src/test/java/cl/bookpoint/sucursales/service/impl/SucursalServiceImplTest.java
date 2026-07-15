@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.sucursales.exception.RecursoNoEncontradoException;
 import cl.bookpoint.sucursales.model.Sucursal;
 import cl.bookpoint.sucursales.repository.SucursalRepository;
 
@@ -115,7 +116,7 @@ class SucursalServiceImplTest {
         when(sucursalRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> sucursalService.obtenerPorId(idInexistente));
         assertEquals("Sucursal no encontrada con id: " + idInexistente, excepcion.getMessage());
         verify(sucursalRepository, times(1)).findById(idInexistente);
@@ -173,7 +174,7 @@ class SucursalServiceImplTest {
         when(sucursalRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        assertThrows(RuntimeException.class, () -> sucursalService.eliminarSucursal(idInexistente));
+        assertThrows(RecursoNoEncontradoException.class, () -> sucursalService.eliminarSucursal(idInexistente));
         verify(sucursalRepository, never()).deleteById(any());
     }
 }

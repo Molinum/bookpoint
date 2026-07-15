@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.clientes.exception.RecursoNoEncontradoException;
 import cl.bookpoint.clientes.model.Cliente;
 import cl.bookpoint.clientes.repository.ClienteRepository;
 
@@ -117,7 +118,7 @@ class ClienteServiceImplTest {
         when(clienteRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> clienteService.obtenerPorId(idInexistente));
 
         assertEquals("Cliente no encontrado con id: " + idInexistente, excepcion.getMessage());
@@ -178,7 +179,7 @@ class ClienteServiceImplTest {
         when(clienteRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        assertThrows(RuntimeException.class, () -> clienteService.eliminarCliente(idInexistente));
+        assertThrows(RecursoNoEncontradoException.class, () -> clienteService.eliminarCliente(idInexistente));
         verify(clienteRepository, never()).deleteById(any());
     }
 }

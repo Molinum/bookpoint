@@ -23,6 +23,7 @@ import cl.bookpoint.carrito.client.CatalogoClient;
 import cl.bookpoint.carrito.client.ClienteClient;
 import cl.bookpoint.carrito.dto.ClienteRentDTO;
 import cl.bookpoint.carrito.dto.LibroRentDTO;
+import cl.bookpoint.carrito.exception.RecursoNoEncontradoException;
 import cl.bookpoint.carrito.model.CarritoItem;
 import cl.bookpoint.carrito.repository.CarritoItemRepository;
 
@@ -84,7 +85,7 @@ class CarritoServiceImplTest {
         when(clienteClient.obtenerClientePorId(99L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> carritoService.agregarItem(item));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> carritoService.agregarItem(item));
         assertEquals("El cliente con ID 99 no existe.", excepcion.getMessage());
         verify(carritoItemRepository, never()).save(any(CarritoItem.class));
     }
@@ -100,7 +101,7 @@ class CarritoServiceImplTest {
         when(catalogoClient.obtenerLibroPorId(999L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> carritoService.agregarItem(item));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> carritoService.agregarItem(item));
         assertEquals("El libro con ID 999 no existe en el catálogo.", excepcion.getMessage());
         verify(carritoItemRepository, never()).save(any(CarritoItem.class));
     }
@@ -175,7 +176,7 @@ class CarritoServiceImplTest {
         when(carritoItemRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> carritoService.actualizarCantidad(idInexistente, 3));
 
         assertEquals("Ítem del carrito no encontrado con id: " + idInexistente, excepcion.getMessage());
@@ -206,7 +207,7 @@ class CarritoServiceImplTest {
         when(carritoItemRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> carritoService.eliminarItem(idInexistente));
 
         assertEquals("Ítem del carrito no encontrado con id: " + idInexistente, excepcion.getMessage());

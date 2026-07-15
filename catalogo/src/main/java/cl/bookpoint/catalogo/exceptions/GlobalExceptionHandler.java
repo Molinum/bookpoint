@@ -38,7 +38,31 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorDTO, HttpStatus.BAD_REQUEST);
     }
 
-    // 2. Captura cualquier otro error inesperado del sistema (Efecto paracaídas)
+    // 2. Recurso no encontrado (ej: obtenerPorId con un id que no existe)
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ResponseEntity<ErrorResponseDTO> handleRecursoNoEncontrado(RecursoNoEncontradoException ex) {
+        ErrorResponseDTO errorDTO = new ErrorResponseDTO(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND.value(),
+                LocalDateTime.now(),
+                null
+        );
+        return new ResponseEntity<>(errorDTO, HttpStatus.NOT_FOUND);
+    }
+
+    // 3. Argumento inválido (ej: violación de una regla de negocio)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponseDTO> handleArgumentoInvalido(IllegalArgumentException ex) {
+        ErrorResponseDTO errorDTO = new ErrorResponseDTO(
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST.value(),
+                LocalDateTime.now(),
+                null
+        );
+        return new ResponseEntity<>(errorDTO, HttpStatus.BAD_REQUEST);
+    }
+
+    // 4. Captura cualquier otro error inesperado del sistema (Efecto paracaídas)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGlobalExceptions(Exception ex) {
         ErrorResponseDTO errorDTO = new ErrorResponseDTO(

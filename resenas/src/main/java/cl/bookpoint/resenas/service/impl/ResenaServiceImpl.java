@@ -2,6 +2,7 @@ package cl.bookpoint.resenas.service.impl;
 
 import cl.bookpoint.resenas.client.CatalogoClient;
 import cl.bookpoint.resenas.client.ClienteClient;
+import cl.bookpoint.resenas.exception.RecursoNoEncontradoException;
 import cl.bookpoint.resenas.model.Resena;
 import cl.bookpoint.resenas.repository.ResenaRepository;
 import cl.bookpoint.resenas.service.ResenaService;
@@ -27,20 +28,20 @@ public class ResenaServiceImpl implements ResenaService {
 
         try {
             if (catalogoClient.obtenerLibroPorId(resena.getLibroId()) == null) {
-                throw new RuntimeException("El libro con ID " + resena.getLibroId() + " no existe en el catálogo.");
+                throw new RecursoNoEncontradoException("El libro con ID " + resena.getLibroId() + " no existe en el catálogo.");
             }
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("El libro con ID " + resena.getLibroId() + " no existe en el catálogo.");
+            throw new RecursoNoEncontradoException("El libro con ID " + resena.getLibroId() + " no existe en el catálogo.");
         } catch (FeignException e) {
             throw new RuntimeException("No se pudo conectar con el catálogo: " + e.getMessage());
         }
 
         try {
             if (clienteClient.obtenerClientePorId(resena.getClienteId()) == null) {
-                throw new RuntimeException("El cliente con ID " + resena.getClienteId() + " no existe.");
+                throw new RecursoNoEncontradoException("El cliente con ID " + resena.getClienteId() + " no existe.");
             }
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("El cliente con ID " + resena.getClienteId() + " no existe.");
+            throw new RecursoNoEncontradoException("El cliente con ID " + resena.getClienteId() + " no existe.");
         } catch (FeignException e) {
             throw new RuntimeException("No se pudo conectar con el servicio de clientes: " + e.getMessage());
         }
@@ -63,7 +64,7 @@ public class ResenaServiceImpl implements ResenaService {
     @Override
     public void eliminarResena(Long id) {
         resenaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reseña no encontrada con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Reseña no encontrada con id: " + id));
         resenaRepository.deleteById(id);
     }
 

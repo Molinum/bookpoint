@@ -2,6 +2,7 @@ package cl.bookpoint.carrito.service.impl;
 
 import cl.bookpoint.carrito.client.CatalogoClient;
 import cl.bookpoint.carrito.client.ClienteClient;
+import cl.bookpoint.carrito.exception.RecursoNoEncontradoException;
 import cl.bookpoint.carrito.model.CarritoItem;
 import cl.bookpoint.carrito.repository.CarritoItemRepository;
 import cl.bookpoint.carrito.service.CarritoService;
@@ -22,20 +23,20 @@ public class CarritoServiceImpl implements CarritoService {
     public CarritoItem agregarItem(CarritoItem item) {
         try {
             if (clienteClient.obtenerClientePorId(item.getClienteId()) == null) {
-                throw new RuntimeException("El cliente con ID " + item.getClienteId() + " no existe.");
+                throw new RecursoNoEncontradoException("El cliente con ID " + item.getClienteId() + " no existe.");
             }
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("El cliente con ID " + item.getClienteId() + " no existe.");
+            throw new RecursoNoEncontradoException("El cliente con ID " + item.getClienteId() + " no existe.");
         } catch (FeignException e) {
             throw new RuntimeException("No se pudo conectar con el servicio de clientes: " + e.getMessage());
         }
 
         try {
             if (catalogoClient.obtenerLibroPorId(item.getLibroId()) == null) {
-                throw new RuntimeException("El libro con ID " + item.getLibroId() + " no existe en el catálogo.");
+                throw new RecursoNoEncontradoException("El libro con ID " + item.getLibroId() + " no existe en el catálogo.");
             }
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("El libro con ID " + item.getLibroId() + " no existe en el catálogo.");
+            throw new RecursoNoEncontradoException("El libro con ID " + item.getLibroId() + " no existe en el catálogo.");
         } catch (FeignException e) {
             throw new RuntimeException("No se pudo conectar con el catálogo: " + e.getMessage());
         }
@@ -53,7 +54,7 @@ public class CarritoServiceImpl implements CarritoService {
     @Override
     public CarritoItem actualizarCantidad(Long id, Integer cantidad) {
         CarritoItem item = carritoItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ítem del carrito no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Ítem del carrito no encontrado con id: " + id));
         item.setCantidad(cantidad);
         return carritoItemRepository.save(item);
     }
@@ -61,7 +62,7 @@ public class CarritoServiceImpl implements CarritoService {
     @Override
     public void eliminarItem(Long id) {
         carritoItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ítem del carrito no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Ítem del carrito no encontrado con id: " + id));
         carritoItemRepository.deleteById(id);
     }
 

@@ -23,6 +23,7 @@ import cl.bookpoint.resenas.client.CatalogoClient;
 import cl.bookpoint.resenas.client.ClienteClient;
 import cl.bookpoint.resenas.dto.ClienteRentDTO;
 import cl.bookpoint.resenas.dto.LibroRentDTO;
+import cl.bookpoint.resenas.exception.RecursoNoEncontradoException;
 import cl.bookpoint.resenas.model.Resena;
 import cl.bookpoint.resenas.repository.ResenaRepository;
 
@@ -79,7 +80,7 @@ class ResenaServiceImplTest {
         when(catalogoClient.obtenerLibroPorId(10L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> resenaService.crearResena(resena));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> resenaService.crearResena(resena));
         assertEquals("El libro con ID 10 no existe en el catálogo.", excepcion.getMessage());
         verify(resenaRepository, never()).save(any(Resena.class));
     }
@@ -93,7 +94,7 @@ class ResenaServiceImplTest {
         when(clienteClient.obtenerClientePorId(1L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> resenaService.crearResena(resena));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> resenaService.crearResena(resena));
         assertEquals("El cliente con ID 1 no existe.", excepcion.getMessage());
         verify(resenaRepository, never()).save(any(Resena.class));
     }
@@ -189,7 +190,7 @@ class ResenaServiceImplTest {
         when(resenaRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        assertThrows(RuntimeException.class, () -> resenaService.eliminarResena(99L));
+        assertThrows(RecursoNoEncontradoException.class, () -> resenaService.eliminarResena(99L));
         verify(resenaRepository, never()).deleteById(any());
     }
 

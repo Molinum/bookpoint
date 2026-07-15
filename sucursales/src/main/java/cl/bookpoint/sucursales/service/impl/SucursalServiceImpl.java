@@ -1,5 +1,6 @@
 package cl.bookpoint.sucursales.service.impl;
 
+import cl.bookpoint.sucursales.exception.RecursoNoEncontradoException;
 import cl.bookpoint.sucursales.model.Sucursal;
 import cl.bookpoint.sucursales.repository.SucursalRepository;
 import cl.bookpoint.sucursales.service.SucursalService;
@@ -28,7 +29,7 @@ public class SucursalServiceImpl implements SucursalService {
     @Override
     public Sucursal obtenerPorId(Long id) {
         return sucursalRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal no encontrada con id: " + id));
     }
 
     @Override

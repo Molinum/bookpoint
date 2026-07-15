@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.bookpoint.pagos.client.PedidoClient;
 import cl.bookpoint.pagos.dto.PedidoRentDTO;
+import cl.bookpoint.pagos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pagos.model.Pago;
 import cl.bookpoint.pagos.repository.PagoRepository;
 
@@ -67,7 +68,7 @@ class PagoServiceImplTest {
         when(pedidoClient.obtenerPedidoPorId(99L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> pagoService.procesarPago(pago));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> pagoService.procesarPago(pago));
         assertEquals("El pedido con ID 99 no existe.", excepcion.getMessage());
         verify(pagoRepository, never()).save(any(Pago.class));
     }
@@ -129,7 +130,7 @@ class PagoServiceImplTest {
         when(pagoRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> pagoService.obtenerPorId(99L));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> pagoService.obtenerPorId(99L));
         assertEquals("Pago no encontrado con id: 99", excepcion.getMessage());
     }
 
@@ -157,7 +158,7 @@ class PagoServiceImplTest {
         when(pagoRepository.findByPedidoId(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> pagoService.obtenerPorPedido(99L));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> pagoService.obtenerPorPedido(99L));
         assertEquals("No existe pago para el pedido con id: 99", excepcion.getMessage());
     }
 }

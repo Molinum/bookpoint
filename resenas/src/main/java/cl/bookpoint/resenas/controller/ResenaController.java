@@ -64,9 +64,4 @@ public class ResenaController {
     public ResponseEntity<Double> promedioPorLibro(@PathVariable Long libroId) {
         return ResponseEntity.ok(resenaService.promedioPorLibro(libroId));
     }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> manejarArgumentoInvalido(IllegalArgumentException e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
-    }
 }

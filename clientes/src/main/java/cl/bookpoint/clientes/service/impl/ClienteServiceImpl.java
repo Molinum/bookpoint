@@ -1,5 +1,6 @@
 package cl.bookpoint.clientes.service.impl;
 
+import cl.bookpoint.clientes.exception.RecursoNoEncontradoException;
 import cl.bookpoint.clientes.model.Cliente;
 import cl.bookpoint.clientes.repository.ClienteRepository;
 import cl.bookpoint.clientes.service.ClienteService;
@@ -29,7 +30,7 @@ public class ClienteServiceImpl implements ClienteService {
     @Override
     public Cliente obtenerPorId(Long id) {
         return clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado con id: " + id));
     }
 
     @Override

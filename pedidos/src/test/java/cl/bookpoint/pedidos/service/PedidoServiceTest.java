@@ -27,6 +27,7 @@ import cl.bookpoint.pedidos.client.InventarioClient;
 import cl.bookpoint.pedidos.dto.InventarioRentDTO;
 import cl.bookpoint.pedidos.dto.LibroRentDTO;
 import cl.bookpoint.pedidos.dto.PedidoDTO;
+import cl.bookpoint.pedidos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pedidos.repository.PedidoRepository;
 import cl.bookpoint.pedidos.service.impl.PedidoServiceImpl;
 
@@ -112,16 +113,44 @@ public class PedidoServiceTest {
         when(inventarioClient.obtenerStockPorLibro(1L)).thenReturn(stocksMock);
 
         // WHEN & THEN: Se ejecuta y debe lanzar excepción
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             pedidoService.crearPedido(pedidoDTO);
         });
 
         // Validamos el mensaje de error de inventario
-        String mensajeEsperado = "Validación de Inventario fallida: Stock insuficiente en Concepcion. Disponible: 2";
+        String mensajeEsperado = "Stock insuficiente en Concepcion. Disponible: 2";
         assertEquals(mensajeEsperado, exception.getMessage());
 
         // Verificamos que NUNCA se intente descontar stock ni guardar el pedido
         verify(inventarioClient, never()).descontarStock(any(), any(), any());
+        verify(pedidoRepository, never()).save(any());
+    }
+
+    @Test
+    void crearPedido_CuandoLibroNoExisteEnCatalogo_DebeLanzarRecursoNoEncontrado() {
+        // GIVEN: catalogo responde que el libro no existe
+        when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(null);
+
+        // WHEN & THEN
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
+                () -> pedidoService.crearPedido(pedidoDTO));
+        assertEquals("El libro solicitado no existe en el catálogo.", excepcion.getMessage());
+        verify(pedidoRepository, never()).save(any());
+    }
+
+    @Test
+    void crearPedido_CuandoNoHayStockEnLaSucursal_DebeLanzarRecursoNoEncontrado() {
+        // GIVEN: el libro existe, pero inventario no tiene registro para esa sucursal
+        when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(libroDTO);
+        inventarioDTO.setSucursal("Temuco");
+        CollectionModel<EntityModel<InventarioRentDTO>> stocksMock =
+                CollectionModel.of(Collections.singletonList(EntityModel.of(inventarioDTO)));
+        when(inventarioClient.obtenerStockPorLibro(1L)).thenReturn(stocksMock);
+
+        // WHEN & THEN
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
+                () -> pedidoService.crearPedido(pedidoDTO));
+        assertEquals("No existe registro de stock para el libro en la sucursal: Concepcion", excepcion.getMessage());
         verify(pedidoRepository, never()).save(any());
     }
 
@@ -147,7 +176,8 @@ public class PedidoServiceTest {
         when(pedidoRepository.findById(999L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> pedidoService.obtenerPorId(999L));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
+                () -> pedidoService.obtenerPorId(999L));
         assertEquals("Pedido no encontrado con id: 999", excepcion.getMessage());
     }
 }

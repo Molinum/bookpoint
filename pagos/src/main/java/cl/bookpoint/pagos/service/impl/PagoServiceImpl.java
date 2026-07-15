@@ -1,6 +1,7 @@
 package cl.bookpoint.pagos.service.impl;
 
 import cl.bookpoint.pagos.client.PedidoClient;
+import cl.bookpoint.pagos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pagos.model.Pago;
 import cl.bookpoint.pagos.repository.PagoRepository;
 import cl.bookpoint.pagos.service.PagoService;
@@ -22,10 +23,10 @@ public class PagoServiceImpl implements PagoService {
     public Pago procesarPago(Pago pago) {
         try {
             if (pedidoClient.obtenerPedidoPorId(pago.getPedidoId()) == null) {
-                throw new RuntimeException("El pedido con ID " + pago.getPedidoId() + " no existe.");
+                throw new RecursoNoEncontradoException("El pedido con ID " + pago.getPedidoId() + " no existe.");
             }
         } catch (FeignException.NotFound e) {
-            throw new RuntimeException("El pedido con ID " + pago.getPedidoId() + " no existe.");
+            throw new RecursoNoEncontradoException("El pedido con ID " + pago.getPedidoId() + " no existe.");
         } catch (FeignException e) {
             throw new RuntimeException("No se pudo conectar con el servicio de pedidos: " + e.getMessage());
         }
@@ -45,12 +46,12 @@ public class PagoServiceImpl implements PagoService {
     @Override
     public Pago obtenerPorId(Long id) {
         return pagoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pago no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Pago no encontrado con id: " + id));
     }
 
     @Override
     public Pago obtenerPorPedido(Long pedidoId) {
         return pagoRepository.findByPedidoId(pedidoId)
-                .orElseThrow(() -> new RuntimeException("No existe pago para el pedido con id: " + pedidoId));
+                .orElseThrow(() -> new RecursoNoEncontradoException("No existe pago para el pedido con id: " + pedidoId));
     }
 }

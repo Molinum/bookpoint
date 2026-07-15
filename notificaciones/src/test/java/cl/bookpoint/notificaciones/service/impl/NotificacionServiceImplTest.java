@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.notificaciones.exception.RecursoNoEncontradoException;
 import cl.bookpoint.notificaciones.model.Notificacion;
 import cl.bookpoint.notificaciones.repository.NotificacionRepository;
 
@@ -105,7 +106,7 @@ class NotificacionServiceImplTest {
         when(notificacionRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> notificacionService.obtenerPorId(99L));
         assertEquals("Notificación no encontrada con id: 99", excepcion.getMessage());
     }

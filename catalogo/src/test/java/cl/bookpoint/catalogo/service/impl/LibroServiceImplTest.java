@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.bookpoint.catalogo.dto.LibroDTO;
+import cl.bookpoint.catalogo.exceptions.RecursoNoEncontradoException;
 import cl.bookpoint.catalogo.model.Libro;
 import cl.bookpoint.catalogo.repository.LibroRepository;
 
@@ -95,7 +96,7 @@ class LibroServiceImplTest {
         when(libroRepository.findById(idInexistente)).thenReturn(Optional.empty());
 
         // WHEN & THEN (Ejecuta el código esperando capturar el error configurado)
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> {
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> {
             libroService.obtenerPorId(idInexistente);
         });
 

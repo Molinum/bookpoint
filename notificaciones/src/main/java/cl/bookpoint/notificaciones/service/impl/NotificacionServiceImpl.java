@@ -1,5 +1,6 @@
 package cl.bookpoint.notificaciones.service.impl;
 
+import cl.bookpoint.notificaciones.exception.RecursoNoEncontradoException;
 import cl.bookpoint.notificaciones.model.Notificacion;
 import cl.bookpoint.notificaciones.repository.NotificacionRepository;
 import cl.bookpoint.notificaciones.service.NotificacionService;
@@ -31,7 +32,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Override
     public Notificacion obtenerPorId(Long id) {
         return notificacionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notificación no encontrada con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Notificación no encontrada con id: " + id));
     }
 
     @Override

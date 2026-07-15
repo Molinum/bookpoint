@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.bookpoint.envios.client.PedidoClient;
 import cl.bookpoint.envios.dto.PedidoRentDTO;
+import cl.bookpoint.envios.exception.RecursoNoEncontradoException;
 import cl.bookpoint.envios.model.Envio;
 import cl.bookpoint.envios.repository.EnvioRepository;
 
@@ -68,7 +69,7 @@ class EnvioServiceImplTest {
         when(pedidoClient.obtenerPedidoPorId(99L)).thenReturn(null);
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> envioService.crearEnvio(envio));
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class, () -> envioService.crearEnvio(envio));
         assertEquals("El pedido con ID 99 no existe.", excepcion.getMessage());
         verify(envioRepository, never()).save(any(Envio.class));
     }
@@ -159,7 +160,7 @@ class EnvioServiceImplTest {
         when(envioRepository.findById(99L)).thenReturn(Optional.empty());
 
         // WHEN & THEN
-        RuntimeException excepcion = assertThrows(RuntimeException.class,
+        RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> envioService.actualizarEstado(99L, "EN_CAMINO"));
         assertEquals("Envío no encontrado con id: 99", excepcion.getMessage());
         verify(envioRepository, never()).save(any(Envio.class));

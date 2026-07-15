@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import cl.bookpoint.pedidos.client.CatalogoClient;
 import cl.bookpoint.pedidos.client.InventarioClient;
 import cl.bookpoint.pedidos.dto.InventarioRentDTO;
+import cl.bookpoint.pedidos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pedidos.dto.LibroRentDTO;
 import cl.bookpoint.pedidos.dto.PedidoDTO;
 import cl.bookpoint.pedidos.model.Pedido;
@@ -32,31 +33,34 @@ public class PedidoServiceImpl implements PedidoService {
         LibroRentDTO libro;
         try {
             libro = catalogoClient.obtenerLibroPorId(pedidoDTO.getLibroId());
-            if (libro == null) {
-                throw new RuntimeException("El libro solicitado no existe en el catálogo.");
-            }
+        } catch (feign.FeignException.NotFound e) {
+            throw new RecursoNoEncontradoException("El libro solicitado no existe en el catálogo.");
         } catch (Exception e) {
             throw new RuntimeException("Error al conectar con Catálogo: " + e.getMessage());
         }
+        if (libro == null) {
+            throw new RecursoNoEncontradoException("El libro solicitado no existe en el catálogo.");
+        }
 
         // 2. VALIDAR STOCK DISPONIBLE EN LA SUCURSAL SELECCIONADA (Vía ms-inventario)
+        List<InventarioRentDTO> stocks;
         try {
-            List<InventarioRentDTO> stocks = inventarioClient.obtenerStockPorLibro(pedidoDTO.getLibroId())
+            stocks = inventarioClient.obtenerStockPorLibro(pedidoDTO.getLibroId())
                     .getContent().stream()
                     .map(EntityModel::getContent)
                     .toList();
-
-            // Buscamos si la sucursal enviada tiene el libro y si cuenta con stock suficiente
-            InventarioRentDTO stockSucursal = stocks.stream()
-                    .filter(inv -> inv.getSucursal().equalsIgnoreCase(pedidoDTO.getSucursal()))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("No existe registro de stock para el libro en la sucursal: " + pedidoDTO.getSucursal()));
-
-            if (stockSucursal.getStock() < pedidoDTO.getCantidad()) {
-                throw new RuntimeException("Stock insuficiente en " + pedidoDTO.getSucursal() + ". Disponible: " + stockSucursal.getStock());
-            }
         } catch (Exception e) {
-            throw new RuntimeException("Validación de Inventario fallida: " + e.getMessage());
+            throw new RuntimeException("No se pudo conectar con Inventario: " + e.getMessage());
+        }
+
+        // Buscamos si la sucursal enviada tiene el libro y si cuenta con stock suficiente
+        InventarioRentDTO stockSucursal = stocks.stream()
+                .filter(inv -> inv.getSucursal().equalsIgnoreCase(pedidoDTO.getSucursal()))
+                .findFirst()
+                .orElseThrow(() -> new RecursoNoEncontradoException("No existe registro de stock para el libro en la sucursal: " + pedidoDTO.getSucursal()));
+
+        if (stockSucursal.getStock() < pedidoDTO.getCantidad()) {
+            throw new IllegalArgumentException("Stock insuficiente en " + pedidoDTO.getSucursal() + ". Disponible: " + stockSucursal.getStock());
         }
 
         // 3. ORDENAR REBAJA DE STOCK EN EL INVENTARIO (Llamada remota PUT)
@@ -87,6 +91,6 @@ public class PedidoServiceImpl implements PedidoService {
     @Override
     public Pedido obtenerPorId(Long id) {
         return pedidoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pedido no encontrado con id: " + id));
+                .orElseThrow(() -> new RecursoNoEncontradoException("Pedido no encontrado con id: " + id));
     }
 }
