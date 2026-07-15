@@ -19,6 +19,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.resenas.client.CatalogoClient;
+import cl.bookpoint.resenas.client.ClienteClient;
+import cl.bookpoint.resenas.dto.ClienteRentDTO;
+import cl.bookpoint.resenas.dto.LibroRentDTO;
 import cl.bookpoint.resenas.model.Resena;
 import cl.bookpoint.resenas.repository.ResenaRepository;
 
@@ -27,6 +31,12 @@ class ResenaServiceImplTest {
 
     @Mock
     private ResenaRepository resenaRepository;
+
+    @Mock
+    private CatalogoClient catalogoClient;
+
+    @Mock
+    private ClienteClient clienteClient;
 
     @InjectMocks
     private ResenaServiceImpl resenaService;
@@ -39,11 +49,17 @@ class ResenaServiceImplTest {
         return resena;
     }
 
+    private void mockearLibroYClienteValidos() {
+        when(catalogoClient.obtenerLibroPorId(10L)).thenReturn(new LibroRentDTO());
+        when(clienteClient.obtenerClientePorId(1L)).thenReturn(new ClienteRentDTO());
+    }
+
     @Test
     @DisplayName("Debería crear una reseña con estrellas válidas")
     void deberiaCrearResenaExitosamente() {
         // GIVEN
         Resena resena = resenaConEstrellas(4);
+        mockearLibroYClienteValidos();
         when(resenaRepository.save(any(Resena.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         // WHEN
@@ -56,11 +72,39 @@ class ResenaServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería lanzar RuntimeException si el libro no existe en el catálogo")
+    void deberiaLanzarExcepcionSiLibroNoExiste() {
+        // GIVEN
+        Resena resena = resenaConEstrellas(4);
+        when(catalogoClient.obtenerLibroPorId(10L)).thenReturn(null);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> resenaService.crearResena(resena));
+        assertEquals("El libro con ID 10 no existe en el catálogo.", excepcion.getMessage());
+        verify(resenaRepository, never()).save(any(Resena.class));
+    }
+
+    @Test
+    @DisplayName("Debería lanzar RuntimeException si el cliente no existe")
+    void deberiaLanzarExcepcionSiClienteNoExiste() {
+        // GIVEN
+        Resena resena = resenaConEstrellas(4);
+        when(catalogoClient.obtenerLibroPorId(10L)).thenReturn(new LibroRentDTO());
+        when(clienteClient.obtenerClientePorId(1L)).thenReturn(null);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> resenaService.crearResena(resena));
+        assertEquals("El cliente con ID 1 no existe.", excepcion.getMessage());
+        verify(resenaRepository, never()).save(any(Resena.class));
+    }
+
+    @Test
     @DisplayName("Debería ignorar un id enviado en el body al crear una reseña")
     void deberiaIgnorarIdEnviadoAlCrear() {
         // GIVEN
         Resena resena = resenaConEstrellas(4);
         resena.setId(999L);
+        mockearLibroYClienteValidos();
         when(resenaRepository.save(any(Resena.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         // WHEN

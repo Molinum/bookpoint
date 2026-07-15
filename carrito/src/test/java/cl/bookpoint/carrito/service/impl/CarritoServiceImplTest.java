@@ -19,6 +19,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.carrito.client.CatalogoClient;
+import cl.bookpoint.carrito.client.ClienteClient;
+import cl.bookpoint.carrito.dto.ClienteRentDTO;
+import cl.bookpoint.carrito.dto.LibroRentDTO;
 import cl.bookpoint.carrito.model.CarritoItem;
 import cl.bookpoint.carrito.repository.CarritoItemRepository;
 
@@ -28,8 +32,19 @@ class CarritoServiceImplTest {
     @Mock
     private CarritoItemRepository carritoItemRepository;
 
+    @Mock
+    private CatalogoClient catalogoClient;
+
+    @Mock
+    private ClienteClient clienteClient;
+
     @InjectMocks
     private CarritoServiceImpl carritoService;
+
+    private void mockearClienteYLibroValidos() {
+        when(clienteClient.obtenerClientePorId(1L)).thenReturn(new ClienteRentDTO());
+        when(catalogoClient.obtenerLibroPorId(10L)).thenReturn(new LibroRentDTO());
+    }
 
     @Test
     @DisplayName("Debería agregar un ítem al carrito exitosamente")
@@ -39,6 +54,7 @@ class CarritoServiceImplTest {
         item.setClienteId(1L);
         item.setLibroId(10L);
         item.setCantidad(2);
+        mockearClienteYLibroValidos();
 
         CarritoItem itemGuardado = new CarritoItem();
         itemGuardado.setId(1L);
@@ -59,12 +75,45 @@ class CarritoServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería lanzar RuntimeException si el cliente no existe")
+    void deberiaLanzarExcepcionSiClienteNoExiste() {
+        // GIVEN
+        CarritoItem item = new CarritoItem();
+        item.setClienteId(99L);
+        item.setLibroId(10L);
+        when(clienteClient.obtenerClientePorId(99L)).thenReturn(null);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> carritoService.agregarItem(item));
+        assertEquals("El cliente con ID 99 no existe.", excepcion.getMessage());
+        verify(carritoItemRepository, never()).save(any(CarritoItem.class));
+    }
+
+    @Test
+    @DisplayName("Debería lanzar RuntimeException si el libro no existe en el catálogo")
+    void deberiaLanzarExcepcionSiLibroNoExiste() {
+        // GIVEN
+        CarritoItem item = new CarritoItem();
+        item.setClienteId(1L);
+        item.setLibroId(999L);
+        when(clienteClient.obtenerClientePorId(1L)).thenReturn(new ClienteRentDTO());
+        when(catalogoClient.obtenerLibroPorId(999L)).thenReturn(null);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> carritoService.agregarItem(item));
+        assertEquals("El libro con ID 999 no existe en el catálogo.", excepcion.getMessage());
+        verify(carritoItemRepository, never()).save(any(CarritoItem.class));
+    }
+
+    @Test
     @DisplayName("Debería ignorar un id enviado en el body al agregar un ítem")
     void deberiaIgnorarIdEnviadoAlAgregar() {
         // GIVEN
         CarritoItem item = new CarritoItem();
         item.setId(999L);
         item.setClienteId(1L);
+        item.setLibroId(10L);
+        mockearClienteYLibroValidos();
 
         when(carritoItemRepository.save(any(CarritoItem.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 

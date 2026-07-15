@@ -20,6 +20,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.envios.client.PedidoClient;
+import cl.bookpoint.envios.dto.PedidoRentDTO;
 import cl.bookpoint.envios.model.Envio;
 import cl.bookpoint.envios.repository.EnvioRepository;
 
@@ -28,6 +30,9 @@ class EnvioServiceImplTest {
 
     @Mock
     private EnvioRepository envioRepository;
+
+    @Mock
+    private PedidoClient pedidoClient;
 
     @InjectMocks
     private EnvioServiceImpl envioService;
@@ -39,6 +44,7 @@ class EnvioServiceImplTest {
         Envio envio = new Envio();
         envio.setPedidoId(1L);
         envio.setDireccionDestino("Calle 123");
+        when(pedidoClient.obtenerPedidoPorId(1L)).thenReturn(new PedidoRentDTO());
 
         when(envioRepository.save(any(Envio.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
@@ -54,12 +60,27 @@ class EnvioServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería lanzar RuntimeException si el pedido no existe")
+    void deberiaLanzarExcepcionSiPedidoNoExiste() {
+        // GIVEN
+        Envio envio = new Envio();
+        envio.setPedidoId(99L);
+        when(pedidoClient.obtenerPedidoPorId(99L)).thenReturn(null);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> envioService.crearEnvio(envio));
+        assertEquals("El pedido con ID 99 no existe.", excepcion.getMessage());
+        verify(envioRepository, never()).save(any(Envio.class));
+    }
+
+    @Test
     @DisplayName("Debería ignorar un id enviado en el body al crear un envío")
     void deberiaIgnorarIdEnviadoAlCrear() {
         // GIVEN
         Envio envio = new Envio();
         envio.setId(999L);
         envio.setPedidoId(1L);
+        when(pedidoClient.obtenerPedidoPorId(1L)).thenReturn(new PedidoRentDTO());
 
         when(envioRepository.save(any(Envio.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 

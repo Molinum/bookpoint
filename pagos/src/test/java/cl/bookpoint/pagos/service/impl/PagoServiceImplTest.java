@@ -13,11 +13,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import cl.bookpoint.pagos.client.PedidoClient;
+import cl.bookpoint.pagos.dto.PedidoRentDTO;
 import cl.bookpoint.pagos.model.Pago;
 import cl.bookpoint.pagos.repository.PagoRepository;
 
@@ -26,6 +29,9 @@ class PagoServiceImplTest {
 
     @Mock
     private PagoRepository pagoRepository;
+
+    @Mock
+    private PedidoClient pedidoClient;
 
     @InjectMocks
     private PagoServiceImpl pagoService;
@@ -38,6 +44,7 @@ class PagoServiceImplTest {
         pago.setPedidoId(1L);
         pago.setMonto(15990.0);
         pago.setMetodoPago("Webpay");
+        when(pedidoClient.obtenerPedidoPorId(1L)).thenReturn(new PedidoRentDTO());
 
         when(pagoRepository.save(any(Pago.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
@@ -52,12 +59,27 @@ class PagoServiceImplTest {
     }
 
     @Test
+    @DisplayName("Debería lanzar RuntimeException si el pedido no existe")
+    void deberiaLanzarExcepcionSiPedidoNoExiste() {
+        // GIVEN
+        Pago pago = new Pago();
+        pago.setPedidoId(99L);
+        when(pedidoClient.obtenerPedidoPorId(99L)).thenReturn(null);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> pagoService.procesarPago(pago));
+        assertEquals("El pedido con ID 99 no existe.", excepcion.getMessage());
+        verify(pagoRepository, never()).save(any(Pago.class));
+    }
+
+    @Test
     @DisplayName("Debería ignorar un id enviado en el body al procesar un pago")
     void deberiaIgnorarIdEnviadoAlProcesar() {
         // GIVEN
         Pago pago = new Pago();
         pago.setId(999L);
         pago.setPedidoId(1L);
+        when(pedidoClient.obtenerPedidoPorId(1L)).thenReturn(new PedidoRentDTO());
 
         when(pagoRepository.save(any(Pago.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 

@@ -2,6 +2,7 @@ package cl.bookpoint.pedidos.service.impl;
 
 import java.util.List;
 
+import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,8 +41,11 @@ public class PedidoServiceImpl implements PedidoService {
 
         // 2. VALIDAR STOCK DISPONIBLE EN LA SUCURSAL SELECCIONADA (Vía ms-inventario)
         try {
-            List<InventarioRentDTO> stocks = inventarioClient.obtenerStockPorLibro(pedidoDTO.getLibroId());
-            
+            List<InventarioRentDTO> stocks = inventarioClient.obtenerStockPorLibro(pedidoDTO.getLibroId())
+                    .getContent().stream()
+                    .map(EntityModel::getContent)
+                    .toList();
+
             // Buscamos si la sucursal enviada tiene el libro y si cuenta con stock suficiente
             InventarioRentDTO stockSucursal = stocks.stream()
                     .filter(inv -> inv.getSucursal().equalsIgnoreCase(pedidoDTO.getSucursal()))

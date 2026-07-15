@@ -1,8 +1,11 @@
 package cl.bookpoint.resenas.service.impl;
 
+import cl.bookpoint.resenas.client.CatalogoClient;
+import cl.bookpoint.resenas.client.ClienteClient;
 import cl.bookpoint.resenas.model.Resena;
 import cl.bookpoint.resenas.repository.ResenaRepository;
 import cl.bookpoint.resenas.service.ResenaService;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,12 +16,35 @@ import java.util.List;
 public class ResenaServiceImpl implements ResenaService {
 
     private final ResenaRepository resenaRepository;
+    private final CatalogoClient catalogoClient;
+    private final ClienteClient clienteClient;
 
     @Override
     public Resena crearResena(Resena resena) {
         if (resena.getEstrellas() == null || resena.getEstrellas() < 1 || resena.getEstrellas() > 5) {
             throw new IllegalArgumentException("Las estrellas deben estar entre 1 y 5");
         }
+
+        try {
+            if (catalogoClient.obtenerLibroPorId(resena.getLibroId()) == null) {
+                throw new RuntimeException("El libro con ID " + resena.getLibroId() + " no existe en el catálogo.");
+            }
+        } catch (FeignException.NotFound e) {
+            throw new RuntimeException("El libro con ID " + resena.getLibroId() + " no existe en el catálogo.");
+        } catch (FeignException e) {
+            throw new RuntimeException("No se pudo conectar con el catálogo: " + e.getMessage());
+        }
+
+        try {
+            if (clienteClient.obtenerClientePorId(resena.getClienteId()) == null) {
+                throw new RuntimeException("El cliente con ID " + resena.getClienteId() + " no existe.");
+            }
+        } catch (FeignException.NotFound e) {
+            throw new RuntimeException("El cliente con ID " + resena.getClienteId() + " no existe.");
+        } catch (FeignException e) {
+            throw new RuntimeException("No se pudo conectar con el servicio de clientes: " + e.getMessage());
+        }
+
         // Ignora cualquier id que venga en el body: esto es una creación, no un update.
         resena.setId(null);
         return resenaRepository.save(resena);

@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 
 import cl.bookpoint.pedidos.client.CatalogoClient;
 import cl.bookpoint.pedidos.client.InventarioClient;
@@ -72,9 +74,10 @@ public class PedidoServiceTest {
         // GIVEN: El libro existe e inventario tiene suficiente stock
         when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(libroDTO);
         
-        List<InventarioRentDTO> stocksMock = Collections.singletonList(inventarioDTO);
+        CollectionModel<EntityModel<InventarioRentDTO>> stocksMock =
+                CollectionModel.of(Collections.singletonList(EntityModel.of(inventarioDTO)));
         when(inventarioClient.obtenerStockPorLibro(1L)).thenReturn(stocksMock);
-        
+
         cl.bookpoint.pedidos.model.Pedido pedidoMock = new cl.bookpoint.pedidos.model.Pedido();
         pedidoMock.setId(100L);
         pedidoMock.setClienteNombre(pedidoDTO.getClienteNombre());
@@ -104,7 +107,8 @@ public class PedidoServiceTest {
         
         when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(libroDTO);
         
-        List<InventarioRentDTO> stocksMock = Collections.singletonList(inventarioDTO);
+        CollectionModel<EntityModel<InventarioRentDTO>> stocksMock =
+                CollectionModel.of(Collections.singletonList(EntityModel.of(inventarioDTO)));
         when(inventarioClient.obtenerStockPorLibro(1L)).thenReturn(stocksMock);
 
         // WHEN & THEN: Se ejecuta y debe lanzar excepción
