@@ -155,6 +155,48 @@ public class PedidoServiceTest {
     }
 
     @Test
+    void crearPedido_CuandoCatalogoNoResponde_DebeLanzarExcepcionDeConexion() {
+        // GIVEN: el catálogo falla por un problema de red (no un 404)
+        when(catalogoClient.obtenerLibroPorId(1L)).thenThrow(new RuntimeException("timeout"));
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class,
+                () -> pedidoService.crearPedido(pedidoDTO));
+        assertEquals("Error al conectar con Catálogo: timeout", excepcion.getMessage());
+        verify(pedidoRepository, never()).save(any());
+    }
+
+    @Test
+    void crearPedido_CuandoInventarioNoResponde_DebeLanzarExcepcionDeConexion() {
+        // GIVEN: el libro existe, pero inventario falla al consultar stock
+        when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(libroDTO);
+        when(inventarioClient.obtenerStockPorLibro(1L)).thenThrow(new RuntimeException("timeout"));
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class,
+                () -> pedidoService.crearPedido(pedidoDTO));
+        assertEquals("No se pudo conectar con Inventario: timeout", excepcion.getMessage());
+        verify(pedidoRepository, never()).save(any());
+    }
+
+    @Test
+    void crearPedido_CuandoFallaLaRebajaDeStock_DebeLanzarExcepcionDeConexion() {
+        // GIVEN: todo válido, pero descontarStock falla en el llamado remoto
+        when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(libroDTO);
+        CollectionModel<EntityModel<InventarioRentDTO>> stocksMock =
+                CollectionModel.of(Collections.singletonList(EntityModel.of(inventarioDTO)));
+        when(inventarioClient.obtenerStockPorLibro(1L)).thenReturn(stocksMock);
+        org.mockito.Mockito.doThrow(new RuntimeException("timeout"))
+                .when(inventarioClient).descontarStock(1L, "Concepcion", 5);
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class,
+                () -> pedidoService.crearPedido(pedidoDTO));
+        assertEquals("No se pudo actualizar el inventario remoto: timeout", excepcion.getMessage());
+        verify(pedidoRepository, never()).save(any());
+    }
+
+    @Test
     void obtenerPorId_CuandoExiste_DebeRetornarPedido() {
         // GIVEN
         cl.bookpoint.pedidos.model.Pedido pedidoMock = new cl.bookpoint.pedidos.model.Pedido();
