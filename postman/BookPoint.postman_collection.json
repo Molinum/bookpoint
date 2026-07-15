@@ -1,0 +1,553 @@
+{
+  "info": {
+    "name": "BookPoint - Microservicios",
+    "description": "Colección Postman para validar CRUD (JPA/ORM) y comunicación REST entre microservicios (Feign) del proyecto BookPoint (DSY1103 - ET).\n\nLas carpetas están ordenadas para poder ejecutarse de arriba hacia abajo con Collection Runner: cada request POST guarda el id creado en una variable de colección (libroId, clienteId, pedidoId, etc.) que las siguientes carpetas reutilizan, igual que las validaciones cruzadas via Feign en el código real.\n\nRequisito: los 10 servicios corriendo localmente (mvn spring-boot:run) o via docker compose, cada uno en su puerto (ver variables de colección). No pasa por el Gateway (8080) a propósito: el Gateway/Eureka no están en la pauta del ET, así que se golpea cada servicio directo para aislar CRUD + REST entre microservicios.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "catalogo_url", "value": "http://localhost:8081/api/v1/catalogo" },
+    { "key": "clientes_url", "value": "http://localhost:8084/api/v1/clientes" },
+    { "key": "inventario_url", "value": "http://localhost:8082/api/v1/inventario" },
+    { "key": "carrito_url", "value": "http://localhost:8086/api/v1/carrito" },
+    { "key": "pedidos_url", "value": "http://localhost:8083/api/v1/pedidos" },
+    { "key": "pagos_url", "value": "http://localhost:8087/api/v1/pagos" },
+    { "key": "envios_url", "value": "http://localhost:8088/api/v1/envios" },
+    { "key": "resenas_url", "value": "http://localhost:8090/api/v1/resenas" },
+    { "key": "notificaciones_url", "value": "http://localhost:8089/api/v1/notificaciones" },
+    { "key": "sucursales_url", "value": "http://localhost:8085/api/v1/sucursales" },
+    { "key": "libroId", "value": "" },
+    { "key": "clienteId", "value": "" },
+    { "key": "sucursalId", "value": "" },
+    { "key": "carritoItemId", "value": "" },
+    { "key": "pedidoId", "value": "" },
+    { "key": "pagoId", "value": "" },
+    { "key": "envioId", "value": "" },
+    { "key": "codigoSeguimiento", "value": "" },
+    { "key": "resenaId", "value": "" },
+    { "key": "notificacionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Catálogo (Libros)",
+      "item": [
+        {
+          "name": "Crear Libro",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('libroId', json.id);",
+            "pm.test('Trae self link (HATEOAS)', () => pm.expect(json._links.self.href).to.include('/catalogo/'));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"titulo\": \"Cien Años de Soledad\",\n  \"autor\": \"Gabriel García Márquez\",\n  \"precio\": 15990\n}" },
+            "url": { "raw": "{{catalogo_url}}", "host": ["{{catalogo_url}}"] }
+          }
+        },
+        {
+          "name": "Listar Libros",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{catalogo_url}}", "host": ["{{catalogo_url}}"] }
+          }
+        },
+        {
+          "name": "Obtener Libro por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{catalogo_url}}/{{libroId}}", "host": ["{{catalogo_url}}"], "path": ["{{libroId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Clientes",
+      "item": [
+        {
+          "name": "Crear Cliente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('clienteId', json.id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Juan Pérez\",\n  \"email\": \"juan.perez@example.com\",\n  \"direccion\": \"Av. Siempre Viva 123\",\n  \"comuna\": \"Providencia\"\n}" },
+            "url": { "raw": "{{clientes_url}}", "host": ["{{clientes_url}}"] }
+          }
+        },
+        {
+          "name": "Listar Clientes",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{clientes_url}}", "host": ["{{clientes_url}}"] } }
+        },
+        {
+          "name": "Obtener Cliente por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{clientes_url}}/{{clienteId}}", "host": ["{{clientes_url}}"], "path": ["{{clienteId}}"] } }
+        },
+        {
+          "name": "Actualizar Cliente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Juan Pérez Soto\",\n  \"email\": \"juan.perez@example.com\",\n  \"direccion\": \"Av. Siempre Viva 456\",\n  \"comuna\": \"Providencia\"\n}" },
+            "url": { "raw": "{{clientes_url}}/{{clienteId}}", "host": ["{{clientes_url}}"], "path": ["{{clienteId}}"] }
+          }
+        },
+        {
+          "name": "Eliminar Cliente (ejecutar al final, rompe la cadena)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": { "method": "DELETE", "url": { "raw": "{{clientes_url}}/{{clienteId}}", "host": ["{{clientes_url}}"], "path": ["{{clienteId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "3. Inventario (Feign -> Catálogo)",
+      "item": [
+        {
+          "name": "Registrar Stock",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Valida libroId contra catálogo via Feign', () => {",
+            "  const json = pm.response.json();",
+            "  pm.expect(json.libroId).to.eql(Number(pm.collectionVariables.get('libroId')));",
+            "});"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"libroId\": {{libroId}},\n  \"sucursal\": \"Santiago Centro\",\n  \"stock\": 50\n}" },
+            "url": { "raw": "{{inventario_url}}", "host": ["{{inventario_url}}"] }
+          }
+        },
+        {
+          "name": "Obtener Stock por Libro",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{inventario_url}}/libro/{{libroId}}", "host": ["{{inventario_url}}"], "path": ["libro", "{{libroId}}"] } }
+        },
+        {
+          "name": "Descontar Stock",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{inventario_url}}/descontar?libroId={{libroId}}&sucursal=Santiago Centro&cantidad=1",
+              "host": ["{{inventario_url}}"],
+              "path": ["descontar"],
+              "query": [
+                { "key": "libroId", "value": "{{libroId}}" },
+                { "key": "sucursal", "value": "Santiago Centro" },
+                { "key": "cantidad", "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Carrito (Feign -> Clientes + Catálogo)",
+      "item": [
+        {
+          "name": "Agregar Item al Carrito",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('carritoItemId', json.id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"libroId\": {{libroId}},\n  \"cantidad\": 2\n}" },
+            "url": { "raw": "{{carrito_url}}", "host": ["{{carrito_url}}"] }
+          }
+        },
+        {
+          "name": "Obtener Carrito por Cliente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{carrito_url}}/cliente/{{clienteId}}", "host": ["{{carrito_url}}"], "path": ["cliente", "{{clienteId}}"] } }
+        },
+        {
+          "name": "Actualizar Cantidad",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 3\n}" },
+            "url": { "raw": "{{carrito_url}}/{{carritoItemId}}", "host": ["{{carrito_url}}"], "path": ["{{carritoItemId}}"] }
+          }
+        },
+        {
+          "name": "Eliminar Item del Carrito",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": { "method": "DELETE", "url": { "raw": "{{carrito_url}}/{{carritoItemId}}", "host": ["{{carrito_url}}"], "path": ["{{carritoItemId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "5. Pedidos (Feign -> Catálogo + Inventario)",
+      "item": [
+        {
+          "name": "Crear Pedido",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('pedidoId', json.id);",
+            "pm.test('Total calculado (precio libro x cantidad)', () => pm.expect(json.total).to.be.above(0));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clienteNombre\": \"Juan Pérez\",\n  \"libroId\": {{libroId}},\n  \"sucursal\": \"Santiago Centro\",\n  \"cantidad\": 2\n}" },
+            "url": { "raw": "{{pedidos_url}}", "host": ["{{pedidos_url}}"] }
+          }
+        },
+        {
+          "name": "Listar Pedidos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pedidos_url}}", "host": ["{{pedidos_url}}"] } }
+        },
+        {
+          "name": "Obtener Pedido por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pedidos_url}}/{{pedidoId}}", "host": ["{{pedidos_url}}"], "path": ["{{pedidoId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "6. Pagos (Feign -> Pedidos)",
+      "item": [
+        {
+          "name": "Procesar Pago",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('pagoId', json.id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"pedidoId\": {{pedidoId}},\n  \"monto\": 31980,\n  \"metodoPago\": \"Webpay\",\n  \"estado\": \"APROBADO\",\n  \"codigoTransaccion\": \"TXN-0001\"\n}" },
+            "url": { "raw": "{{pagos_url}}", "host": ["{{pagos_url}}"] }
+          }
+        },
+        {
+          "name": "Listar Pagos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pagos_url}}", "host": ["{{pagos_url}}"] } }
+        },
+        {
+          "name": "Obtener Pago por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pagos_url}}/{{pagoId}}", "host": ["{{pagos_url}}"], "path": ["{{pagoId}}"] } }
+        },
+        {
+          "name": "Obtener Pago por Pedido",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pagos_url}}/pedido/{{pedidoId}}", "host": ["{{pagos_url}}"], "path": ["pedido", "{{pedidoId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "7. Envíos (Feign -> Pedidos)",
+      "item": [
+        {
+          "name": "Crear Envío",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('envioId', json.id);",
+            "pm.collectionVariables.set('codigoSeguimiento', json.codigoSeguimiento);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"pedidoId\": {{pedidoId}},\n  \"codigoSeguimiento\": \"TRACK-1001\",\n  \"direccionDestino\": \"Av. Siempre Viva 123\",\n  \"comuna\": \"Providencia\",\n  \"estado\": \"PREPARACION\",\n  \"transportista\": \"Chilexpress\"\n}" },
+            "url": { "raw": "{{envios_url}}", "host": ["{{envios_url}}"] }
+          }
+        },
+        {
+          "name": "Consultar Tracking",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{envios_url}}/track/{{codigoSeguimiento}}", "host": ["{{envios_url}}"], "path": ["track", "{{codigoSeguimiento}}"] } }
+        },
+        {
+          "name": "Listar Envíos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{envios_url}}", "host": ["{{envios_url}}"] } }
+        },
+        {
+          "name": "Actualizar Estado de Envío",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"EN_CAMINO\"\n}" },
+            "url": { "raw": "{{envios_url}}/{{envioId}}/estado", "host": ["{{envios_url}}"], "path": ["{{envioId}}", "estado"] }
+          }
+        },
+        {
+          "name": "Obtener Envíos por Pedido",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{envios_url}}/pedido/{{pedidoId}}", "host": ["{{envios_url}}"], "path": ["pedido", "{{pedidoId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "8. Reseñas (Feign -> Catálogo + Clientes)",
+      "item": [
+        {
+          "name": "Crear Reseña",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('resenaId', json.id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"libroId\": {{libroId}},\n  \"clienteId\": {{clienteId}},\n  \"estrellas\": 5,\n  \"comentario\": \"Excelente libro, muy recomendado\"\n}" },
+            "url": { "raw": "{{resenas_url}}", "host": ["{{resenas_url}}"] }
+          }
+        },
+        {
+          "name": "Obtener Reseñas por Libro",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{resenas_url}}/libro/{{libroId}}", "host": ["{{resenas_url}}"], "path": ["libro", "{{libroId}}"] } }
+        },
+        {
+          "name": "Promedio de Estrellas por Libro",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{resenas_url}}/libro/{{libroId}}/promedio", "host": ["{{resenas_url}}"], "path": ["libro", "{{libroId}}", "promedio"] } }
+        },
+        {
+          "name": "Obtener Reseñas por Cliente",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{resenas_url}}/cliente/{{clienteId}}", "host": ["{{resenas_url}}"], "path": ["cliente", "{{clienteId}}"] } }
+        },
+        {
+          "name": "Eliminar Reseña",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": { "method": "DELETE", "url": { "raw": "{{resenas_url}}/{{resenaId}}", "host": ["{{resenas_url}}"], "path": ["{{resenaId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "9. Notificaciones (independiente)",
+      "item": [
+        {
+          "name": "Enviar Notificación",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('notificacionId', json.id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"destinatario\": \"juan.perez@example.com\",\n  \"asunto\": \"Confirmación de Pedido\",\n  \"mensaje\": \"Tu pedido #{{pedidoId}} ha sido confirmado\",\n  \"tipo\": \"EMAIL\"\n}" },
+            "url": { "raw": "{{notificaciones_url}}", "host": ["{{notificaciones_url}}"] }
+          }
+        },
+        {
+          "name": "Listar Historial",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{notificaciones_url}}", "host": ["{{notificaciones_url}}"] } }
+        },
+        {
+          "name": "Obtener Notificación por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{notificaciones_url}}/{{notificacionId}}", "host": ["{{notificaciones_url}}"], "path": ["{{notificacionId}}"] } }
+        },
+        {
+          "name": "Obtener por Destinatario",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{notificaciones_url}}/destinatario/juan.perez@example.com", "host": ["{{notificaciones_url}}"], "path": ["destinatario", "juan.perez@example.com"] } }
+        }
+      ]
+    },
+    {
+      "name": "10. Sucursales (independiente)",
+      "item": [
+        {
+          "name": "Crear Sucursal",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('sucursalId', json.id);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Santiago Centro\",\n  \"direccion\": \"Alameda 1234\",\n  \"ciudad\": \"Santiago\"\n}" },
+            "url": { "raw": "{{sucursales_url}}", "host": ["{{sucursales_url}}"] }
+          }
+        },
+        {
+          "name": "Listar Sucursales",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{sucursales_url}}", "host": ["{{sucursales_url}}"] } }
+        },
+        {
+          "name": "Obtener Sucursal por ID",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{sucursales_url}}/{{sucursalId}}", "host": ["{{sucursales_url}}"], "path": ["{{sucursalId}}"] } }
+        },
+        {
+          "name": "Actualizar Sucursal",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Santiago Centro\",\n  \"direccion\": \"Alameda 5678\",\n  \"ciudad\": \"Santiago\"\n}" },
+            "url": { "raw": "{{sucursales_url}}/{{sucursalId}}", "host": ["{{sucursales_url}}"], "path": ["{{sucursalId}}"] }
+          }
+        },
+        {
+          "name": "Eliminar Sucursal",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 204', () => pm.response.to.have.status(204));"
+          ]}}],
+          "request": { "method": "DELETE", "url": { "raw": "{{sucursales_url}}/{{sucursalId}}", "host": ["{{sucursales_url}}"], "path": ["{{sucursalId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "11. Errores y validaciones cruzadas (404 / 400)",
+      "item": [
+        {
+          "name": "Catálogo - Obtener libro inexistente (404)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{catalogo_url}}/999999", "host": ["{{catalogo_url}}"], "path": ["999999"] } }
+        },
+        {
+          "name": "Inventario - Registrar stock de libro inexistente (404 via Feign)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"libroId\": 999999,\n  \"sucursal\": \"Santiago Centro\",\n  \"stock\": 10\n}" },
+            "url": { "raw": "{{inventario_url}}", "host": ["{{inventario_url}}"] }
+          }
+        },
+        {
+          "name": "Pedidos - Crear pedido de libro inexistente (404 via Feign)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clienteNombre\": \"Juan Pérez\",\n  \"libroId\": 999999,\n  \"sucursal\": \"Santiago Centro\",\n  \"cantidad\": 1\n}" },
+            "url": { "raw": "{{pedidos_url}}", "host": ["{{pedidos_url}}"] }
+          }
+        },
+        {
+          "name": "Pedidos - Stock insuficiente (400)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clienteNombre\": \"Juan Pérez\",\n  \"libroId\": {{libroId}},\n  \"sucursal\": \"Santiago Centro\",\n  \"cantidad\": 999999\n}" },
+            "url": { "raw": "{{pedidos_url}}", "host": ["{{pedidos_url}}"] }
+          }
+        },
+        {
+          "name": "Pagos - Procesar pago de pedido inexistente (404 via Feign)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"pedidoId\": 999999,\n  \"monto\": 1000,\n  \"metodoPago\": \"Webpay\",\n  \"estado\": \"APROBADO\",\n  \"codigoTransaccion\": \"TXN-9999\"\n}" },
+            "url": { "raw": "{{pagos_url}}", "host": ["{{pagos_url}}"] }
+          }
+        },
+        {
+          "name": "Catálogo - Crear libro sin título (400 validación)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"autor\": \"Autor Sin Titulo\",\n  \"precio\": 5000\n}" },
+            "url": { "raw": "{{catalogo_url}}", "host": ["{{catalogo_url}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
