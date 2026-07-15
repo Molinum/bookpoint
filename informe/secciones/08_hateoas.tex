@@ -1,0 +1,89 @@
+\chapter{Documentación HATEOAS}
+\label{ch:hateoas}
+
+\section{Framework elegido: Spring HATEOAS}
+
+Se eligió \textbf{Spring HATEOAS} como framework para implementar el nivel de madurez
+de Richardson correspondiente a hipermedia (HATEOAS), por su integración nativa con
+Spring Boot: no requiere construir manualmente las URLs de los enlaces, sino que las
+deriva directamente de los métodos del propio controlador mediante
+\texttt{WebMvcLinkBuilder}, evitando que los enlaces queden desincronizados si cambia
+una ruta.
+
+\begin{lstlisting}[language=Java, caption={LibroController.java -- respuesta con enlace HATEOAS}]
+@GetMapping("/{id}")
+public ResponseEntity<EntityModel<LibroDTO>> obtenerPorId(@PathVariable Long id) {
+    Libro libro = libroService.obtenerPorId(id);
+    LibroDTO dto = libroMapper.toDTO(libro);
+
+    EntityModel<LibroDTO> model = EntityModel.of(dto);
+    model.add(linkTo(methodOn(LibroController.class)
+        .obtenerPorId(id)).withSelfRel());
+    model.add(linkTo(methodOn(LibroController.class)
+        .listar()).withRel("listar"));
+
+    return ResponseEntity.ok(model);
+}
+\end{lstlisting}
+
+Cada respuesta de un recurso individual incluye al menos un enlace \textit{self}, y en
+varios casos un enlace adicional hacia el recurso relacionado más natural (por ejemplo,
+de un libro hacia el listado completo, o de una reseña hacia el promedio de
+calificaciones del libro correspondiente).
+
+\section{Navegabilidad de la API}
+
+El siguiente ejemplo, tomado de una respuesta real capturada durante la verificación en
+Docker, muestra la forma exacta en que Spring HATEOAS serializa un recurso individual
+(formato HAL): los campos del recurso se aplanan al nivel superior del JSON, junto al
+objeto \texttt{\_links}:
+
+\begin{lstlisting}[language=json, caption={Respuesta real de \texttt{POST /api/v1/catalogo}}]
+{
+  "_links": {
+    "self": { "href": "http://localhost:8081/api/v1/catalogo/3" }
+  },
+  "id": 3,
+  "titulo": "Cien Anos de Soledad",
+  "autor": "Gabriel Garcia Marquez",
+  "precio": 15990.0
+}
+\end{lstlisting}
+
+Para una colección, en cambio, el formato HAL cambia de estructura: en lugar de un
+arreglo plano, la respuesta envuelve los elementos dentro de \texttt{\_embedded}:
+
+\begin{lstlisting}[language=json, caption={Respuesta real de un listado con HATEOAS}]
+{
+  "_embedded": {
+    "historialEstadoList": [
+      { "id": 1, "estado": "PREPARACION", "envioId": 16 },
+      { "id": 2, "estado": "EN_CAMINO",  "envioId": 16 }
+    ]
+  },
+  "_links": {
+    "self": { "href": "http://localhost:8088/api/v1/envios/16/historial" }
+  }
+}
+\end{lstlisting}
+
+Esta diferencia estructural entre un recurso individual (aplanado) y una colección
+(\texttt{\_embedded}) no es cosmética: un consumidor de la API que espere un arreglo
+plano de JSON (como un \texttt{List<X>} tipado en un cliente Feign) fallará al
+deserializar una respuesta HATEOAS de colección. Este problema se presentó realmente al
+extender HATEOAS al microservicio de inventario: el \texttt{InventarioClient} que
+consume \texttt{pedidos} esperaba \texttt{List<InventarioRentDTO>}, y tuvo que
+actualizarse a \texttt{CollectionModel<EntityModel<InventarioRentDTO>>} para reflejar
+la forma real de la respuesta:
+
+\begin{lstlisting}[language=Java, caption={InventarioClient.java (pedidos) -- adaptado a la forma HATEOAS real}]
+// inventario expone esta lista envuelta en HATEOAS (CollectionModel), no como
+// un arreglo plano -- hay que declarar el tipo tal cual lo devuelve el productor.
+@GetMapping("/api/v1/inventario/libro/{libroId}")
+CollectionModel<EntityModel<InventarioRentDTO>> obtenerStockPorLibro(
+    @PathVariable("libroId") Long libroId);
+\end{lstlisting}
+
+Este detalle refuerza por qué la navegabilidad HATEOAS debe considerarse desde el
+diseño del contrato entre microservicios, y no agregarse como una capa cosmética al
+final del desarrollo.

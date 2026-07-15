@@ -1,0 +1,158 @@
+\chapter{Estrategia y Arquitectura de Microservicios}
+\label{ch:arquitectura}
+
+\section{Análisis del sistema actual}
+
+Según el caso de estudio, BookPoint Chile nació como una librería independiente en
+Concepción y, debido al crecimiento de sus ventas, abrió nuevas sucursales en Temuco y
+La Serena. Actualmente opera con un \textbf{sistema monolítico} que concentra en un
+mismo aplicativo las ventas, el inventario, el despacho y la atención de clientes.
+
+El propio caso identifica tres síntomas concretos de que ese monolito ya no escala con
+el crecimiento de la operación:
+
+\begin{itemize}
+    \item \textbf{Lentitud en los procesos}, provocada por el aumento sostenido de
+    pedidos tanto presenciales como por canal web.
+    \item \textbf{Stock desactualizado} entre sucursales, al no existir una fuente de
+    verdad de inventario que se sincronice en tiempo real entre Concepción, Temuco y
+    La Serena.
+    \item \textbf{Demoras en la gestión de despachos}, al no contar con un módulo
+    dedicado de logística que pueda evolucionar independientemente del resto del
+    sistema.
+\end{itemize}
+
+Estos síntomas son característicos de una arquitectura monolítica sometida a
+crecimiento: al compartir un único proceso, una única base de datos y un único ciclo de
+despliegue, cualquier cambio en el módulo de inventario obliga a redesplegar
+\textit{todo} el sistema -- incluida la caja de venta presencial, que no puede
+detenerse sin afectar directamente la operación de las tres tiendas físicas. Del mismo
+modo, un pico de tráfico en el canal web (por ejemplo, durante una campaña de
+descuentos) satura recursos que también necesita la venta presencial, porque ambos
+comparten el mismo proceso.
+
+\section{Estrategia de microservicios elegida}
+
+Para resolver el caso propuesto se optó por una arquitectura de
+\textbf{microservicios independientes}, organizados por dominio de negocio (no por
+capa técnica), con los siguientes principios:
+
+\begin{itemize}
+    \item \textbf{Base de datos por servicio.} Cada microservicio posee su propia base
+    de datos MySQL (Tabla~\ref{tab:bd-servicio}), eliminando el acoplamiento de datos
+    que hoy sufre el sistema monolítico. El módulo de inventario puede evolucionar su
+    modelo de stock sin coordinar una migración con el módulo de reseñas.
+    \item \textbf{Comunicación síncrona vía REST/Feign} para las relaciones entre
+    dominios que sí necesitan datos de otro servicio en el momento (por ejemplo, un
+    pedido necesita confirmar que el libro existe y que hay stock antes de
+    concretarse).
+    \item \textbf{Descubrimiento de servicios con Eureka}, para que ningún
+    microservicio necesite conocer de antemano la dirección de red de los demás --
+    relevante en un escenario con tres sucursales que podrían eventualmente desplegarse
+    en ubicaciones distintas.
+    \item \textbf{API Gateway como fachada única}, que permite exponer una sola puerta
+    de entrada hacia los distintos canales (presencial, web) sin que el cliente
+    necesite conocer la topología interna de microservicios.
+\end{itemize}
+
+Esta estrategia ataca directamente los tres síntomas identificados: la lentitud se
+resuelve porque cada dominio escala y se despliega de forma independiente (el catálogo,
+que se consulta constantemente, no compite por recursos con el módulo de pagos); el
+stock desactualizado se resuelve centralizando el inventario en un único microservicio
+consultado por todos los canales y sucursales; y las demoras de despacho se resuelven
+con un microservicio de envíos dedicado, capaz de evolucionar su lógica de logística sin
+tocar el resto del sistema.
+
+\section{Diseño de los microservicios}
+
+El caso de estudio describe seis perfiles de usuario (Administrador del Sistema, Jefe
+de Sucursal, Asistente de Ventas, Área de Logística, Encargado de Bodega y Clientes vía
+web) con un total de más de treinta acciones posibles. La Tabla~\ref{tab:mapeo-perfiles}
+mapea los diez microservicios efectivamente construidos a los perfiles del caso que
+cubren.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Microservicio} & \textbf{Perfiles/acciones del caso que cubre} \\
+\midrule
+Catálogo & Cliente: navegar catálogo de libros. \\
+Inventario & Encargado de Bodega: administrar stock central y por sucursal.
+Administrador: consultar stock disponible en otras sucursales. \\
+Sucursales & Jefe de Sucursal: administrar datos de la sucursal. \\
+Clientes & Cliente: crear cuenta, administrar perfil y direcciones. \\
+Carrito & Cliente: agregar productos al carrito. \\
+Pedidos & Cliente: realizar compras online. Asistente de Ventas: registrar ventas
+(equivalente digital de la venta en caja). Jefe de Sucursal: generar reportes de
+ventas por sucursal y por autor. \\
+Pagos & Cliente: pagar una compra online. \\
+Envíos & Área de Logística: gestionar envíos de pedidos a domicilio, actualizar
+estados de pedidos. \\
+Notificaciones & Cliente: recibir confirmaciones y alertas asociadas a su pedido. \\
+Reseñas & Cliente: dejar reseñas y calificaciones de productos. \\
+\bottomrule
+\end{tabularx}
+\caption{Mapeo de los microservicios construidos a los perfiles del caso BookPoint Chile}
+\label{tab:mapeo-perfiles}
+\end{table}
+
+\subsection{Alcance y exclusiones deliberadas}
+
+No todas las acciones descritas en el caso están cubiertas por la implementación
+actual. Se priorizó el \textbf{flujo comercial completo} (explorar catálogo, agregar al
+carrito, comprar, pagar, despachar, reseñar) por sobre funciones administrativas de
+soporte, que quedaron fuera de alcance de forma consciente:
+
+\begin{itemize}
+    \item Gestión de usuarios y permisos por rol para el perfil Administrador del
+    Sistema (autenticación básica de clientes vía JWT sí se implementó, ver
+    sección~\ref{ch:etica}).
+    \item Reportes de ventas por categoría (Jefe de Sucursal) -- los reportes por
+    sucursal y por autor sí se implementaron (sección~\ref{ch:crud}), pero por
+    categoría exigiría antes agregar un campo de categoría/género al catálogo, que
+    no existe hoy.
+    \item Promociones, descuentos, convenios estudiantiles y cupones (Asistente de
+    Ventas, Cliente).
+    \item Emisión de boletas o facturas electrónicas y gestión de devoluciones
+    (Asistente de Ventas).
+    \item Transferencias de stock entre sucursales, gestión de proveedores editoriales
+    y optimización de rutas de distribución (Área de Logística, Encargado de Bodega).
+\end{itemize}
+
+Esta decisión de alcance no es un descuido: dado el tiempo disponible, se priorizó
+profundizar el flujo transaccional principal -- con validaciones cruzadas reales entre
+servicios, manejo de errores consistente y pruebas automatizadas -- por sobre cubrir
+superficialmente la totalidad de acciones descritas en el caso.
+
+\section{Plan de migración}
+
+Para migrar el sistema monolítico descrito en el caso hacia esta arquitectura, se
+plantea un enfoque incremental de tipo \textbf{strangler fig} (extracción progresiva),
+en lugar de una reescritura total (\textit{big-bang rewrite}), que sería
+significativamente más riesgosa para una empresa que necesita mantener sus tres
+sucursales operativas durante la transición:
+
+\begin{enumerate}
+    \item \textbf{Extraer primero los dominios de solo lectura y bajo acoplamiento
+    transaccional}: catálogo e inventario. Son los más consultados (cada venta,
+    presencial o web, necesita leerlos) y los que menos dependen de otros módulos para
+    funcionar.
+    \item \textbf{Introducir el API Gateway como fachada de transición}, de modo que
+    el resto del sistema (aún monolítico en esta etapa) y los microservicios ya
+    extraídos convivan detrás de una única puerta de entrada, sin que el cliente note
+    el cambio.
+    \item \textbf{Extraer los dominios transaccionales}: clientes, carrito, pedidos y
+    pagos, en ese orden, ya que cada uno depende de que el anterior esté disponible
+    como servicio (el carrito necesita clientes y catálogo; los pedidos necesitan
+    catálogo e inventario).
+    \item \textbf{Extraer los dominios de soporte}: sucursales, envíos, notificaciones
+    y reseñas, que dependen de que pedidos ya exista como microservicio independiente.
+    \item \textbf{Retirar el monolito} una vez que todos los dominios estén servidos
+    por microservicios y validados en producción.
+\end{enumerate}
+
+Este orden minimiza el riesgo operativo: en cada paso, el sistema sigue siendo
+funcional para las tres sucursales, y solo se apaga definitivamente el monolito cuando
+ya no queda ningún flujo de negocio dependiendo de él.

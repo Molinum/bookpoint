@@ -1,0 +1,266 @@
+\chapter{Buenas Prácticas de Desarrollo Backend}
+\label{ch:buenas-practicas}
+
+Este capítulo aborda el indicador de mayor ponderación del informe (16\%): el desarrollo
+de componentes de backend aplicando buenas prácticas de diseño y arquitectura, el uso de
+Spring y Maven, y el trabajo colaborativo mediante Git.
+
+\section{Patrón Controller-Service-Repository}
+
+Los diez microservicios de BookPoint aplican de forma consistente el patrón
+\textbf{Controller-Service-Repository (CSR)}, separando estrictamente tres
+responsabilidades:
+
+\begin{itemize}
+    \item \textbf{Controller}: recibe la petición HTTP, delega en el service y traduce
+    el resultado a una respuesta REST (código de estado, cuerpo, enlaces HATEOAS). No
+    contiene lógica de negocio.
+    \item \textbf{Service}: concentra la lógica de negocio, las validaciones cruzadas
+    contra otros microservicios (vía Feign) y las reglas del dominio (por ejemplo,
+    verificar stock antes de confirmar un pedido).
+    \item \textbf{Repository}: acceso a datos mediante Spring Data JPA
+    (\texttt{JpaRepository}), sin lógica de negocio.
+\end{itemize}
+
+El siguiente ejemplo, tomado del microservicio de catálogo, muestra la capa de servicio
+completa de \texttt{LibroServiceImpl}: no contiene código HTTP ni SQL, solo la
+traducción entre el DTO de entrada y la entidad persistida, y el manejo del caso "no
+encontrado" mediante una excepción de negocio propia:
+
+\begin{lstlisting}[language=Java, caption={LibroServiceImpl.java -- capa de servicio de catálogo}]
+@Service
+@RequiredArgsConstructor
+public class LibroServiceImpl implements LibroService {
+
+    private final LibroRepository libroRepository;
+
+    @Override
+    public Libro guardarLibro(LibroDTO libroDTO) {
+        Libro libro = new Libro();
+        libro.setTitulo(libroDTO.getTitulo());
+        libro.setAutor(libroDTO.getAutor());
+        libro.setPrecio(libroDTO.getPrecio());
+        return libroRepository.save(libro);
+    }
+
+    @Override
+    public Libro obtenerPorId(Long id) {
+        return libroRepository.findById(id)
+            .orElseThrow(() -> new RecursoNoEncontradoException(
+                "Libro no encontrado con id: " + id));
+    }
+}
+\end{lstlisting}
+
+Esta separación se replica de forma idéntica en los diez servicios, lo que permite que
+cualquier persona familiarizada con uno de ellos pueda orientarse rápidamente en los
+demás -- una consecuencia directa de mantener una convención uniforme en todo el
+proyecto.
+
+\section{Modularidad, mantenibilidad y escalabilidad}
+
+\subsection{Base de datos por servicio}
+
+Cada microservicio posee su propia base de datos MySQL, sin compartir esquemas ni
+tablas con otros servicios (Tabla~\ref{tab:bd-servicio}). Esto evita el acoplamiento de
+datos característico de los monolitos -- como el descrito en el caso BookPoint Chile,
+donde ventas, inventario, despacho y atención de clientes conviven en un mismo sistema
+-- y permite que cada equipo pueda evolucionar el modelo de datos de su dominio sin
+coordinar migraciones con el resto.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Microservicio} & \textbf{Base de datos} \\
+\midrule
+catálogo & bookpoint\_catalogo\_db \\
+inventario & bookpoint\_inventario\_db \\
+pedidos & bookpoint\_pedidos\_db \\
+clientes & bookpoint\_clientes\_db \\
+sucursales & bookpoint\_sucursales\_db \\
+carrito & bookpoint\_carrito\_db \\
+pagos & bookpoint\_pagos\_db \\
+envíos & bookpoint\_envios\_db \\
+notificaciones & bookpoint\_notificaciones\_db \\
+reseñas & bookpoint\_resenas\_db \\
+\bottomrule
+\end{tabular}
+\caption{Una base de datos independiente por microservicio}
+\label{tab:bd-servicio}
+\end{table}
+
+\subsection{Separación DTO / entidad}
+
+En los servicios donde la entrada requiere validación estricta (por ejemplo,
+\texttt{catálogo}, \texttt{inventario} y \texttt{pedidos}), se utiliza un DTO anotado
+con \textit{Bean Validation} (\texttt{@NotBlank}, \texttt{@NotNull}, \texttt{@Positive})
+en lugar de exponer la entidad JPA directamente en el controlador. Esto evita que un
+cliente de la API pueda, por ejemplo, enviar un \texttt{id} propio al crear un recurso
+y sobrescribir accidentalmente uno existente -- un error real detectado y corregido
+durante el desarrollo (ver sección~\ref{sec:evolucion}).
+
+\subsection{Manejo centralizado de excepciones}
+
+Cada microservicio expone un \texttt{@RestControllerAdvice} propio
+(\texttt{GlobalExceptionHandler}) que traduce las excepciones de negocio en respuestas
+HTTP coherentes, evitando repetir bloques \texttt{try/catch} en cada controlador:
+
+\begin{lstlisting}[language=Java, caption={GlobalExceptionHandler.java (catálogo) -- fragmento}]
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ResponseEntity<ErrorResponseDTO> handleRecursoNoEncontrado(
+            RecursoNoEncontradoException ex) {
+        ErrorResponseDTO errorDTO = new ErrorResponseDTO(
+                ex.getMessage(), HttpStatus.NOT_FOUND.value(),
+                LocalDateTime.now(), null);
+        return new ResponseEntity<>(errorDTO, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponseDTO> handleArgumentoInvalido(
+            IllegalArgumentException ex) {
+        ErrorResponseDTO errorDTO = new ErrorResponseDTO(
+                ex.getMessage(), HttpStatus.BAD_REQUEST.value(),
+                LocalDateTime.now(), null);
+        return new ResponseEntity<>(errorDTO, HttpStatus.BAD_REQUEST);
+    }
+}
+\end{lstlisting}
+
+Este patrón asegura que un recurso inexistente responda siempre con \texttt{404}, una
+violación de regla de negocio con \texttt{400}, y un error inesperado con \texttt{500}
+-- de forma consistente en los diez servicios, en vez de depender de que cada
+desarrollador recuerde hacerlo caso a caso.
+
+\section{Spring Boot y Maven}
+
+El proyecto está organizado como un \textbf{POM multi-módulo} de Maven: un
+\texttt{pom.xml} raíz de tipo \texttt{pom} declara los doce módulos (diez
+microservicios de negocio, \texttt{eureka-server} y \texttt{gateway}) y centraliza en
+\texttt{dependencyManagement} las versiones compartidas -- \textbf{Spring Boot 4.1},
+\textbf{Java 21} y \textbf{Spring Cloud 2025.1.2} -- de modo que ningún módulo hijo
+necesita fijar versiones por su cuenta:
+
+\begin{lstlisting}[language=XML, caption={pom.xml raíz -- fragmento relevante}]
+<properties>
+    <java.version>21</java.version>
+    <spring-cloud.version>2025.1.2</spring-cloud.version>
+</properties>
+
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>${spring-cloud.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+\end{lstlisting}
+
+Además de \texttt{spring-boot-starter-web} y \texttt{spring-boot-starter-data-jpa}
+(presentes en los diez servicios), el proyecto utiliza:
+
+\begin{itemize}
+    \item \textbf{Spring Cloud OpenFeign}: comunicación declarativa entre
+    microservicios (capítulo~\ref{ch:rest}).
+    \item \textbf{Spring Cloud Netflix Eureka Client}: registro y descubrimiento de
+    servicios.
+    \item \textbf{Spring HATEOAS}: navegabilidad de la API (capítulo~\ref{ch:hateoas}).
+    \item \textbf{springdoc-openapi}: documentación Swagger/OpenAPI por servicio.
+    \item \textbf{JaCoCo Maven Plugin}: medición de cobertura de pruebas
+    (capítulo~\ref{ch:testing}).
+    \item \textbf{Datafaker}: generación de datos de prueba realistas al levantar cada
+    servicio (ver sección~\ref{sec:evolucion}).
+\end{itemize}
+
+\section{Trabajo colaborativo con Git}
+
+Este proyecto fue desarrollado íntegramente en solitario: aunque la pauta permite
+equipos de hasta tres integrantes, todo el desarrollo backend -- diseño, código,
+pruebas y correcciones -- fue trabajo individual, sin otros integrantes aportando
+código al repositorio.
+
+El trabajo se hizo directo sobre la rama \texttt{main}, sin ramas separadas por
+funcionalidad. El desarrollo comenzó por los servicios núcleo del flujo comercial
+(catálogo, inventario y pedidos), construidos hasta tener la comunicación Feign básica
+funcionando entre ellos; a partir de ahí se fue extendiendo el resto de los
+microservicios y, en tareas más mecánicas y repetitivas -- aplicar el mismo cambio de
+forma consistente a lo largo de los diez servicios, como la incorporación de HATEOAS o
+la construcción de la colección Postman --, se aceleró el trabajo con herramientas de
+asistencia de desarrollo.
+
+El repositorio del proyecto utiliza Git como sistema de control de versiones, con una
+convención de mensajes de commit en español, explicando siempre el \textit{porqué} del
+cambio y no solo el \textit{qué}. Los cambios no relacionados se separan en commits
+distintos en lugar de agruparse en una sola entrega masiva -- por ejemplo, la sesión de
+trabajo dedicada a corregir el mapeo de errores HTTP, agregar HATEOAS y sumar
+validaciones cruzadas vía Feign se dividió en tres commits independientes, cada uno
+enfocado en un solo cambio lógico:
+
+\begin{lstlisting}[caption={Extracto de \texttt{git log --oneline}}]
+47bacbb feat: implementar HATEOAS en los 9 microservicios que faltaban
+9c05bdb feat: agregar validaciones cruzadas via Feign en carrito,
+        resenas, pagos y envios
+ccaf47d fix: mapear "no encontrado" a HTTP 404 en los 10 microservicios
+\end{lstlisting}
+
+\section{Evolución del proyecto: correcciones realizadas durante el semestre}
+\label{sec:evolucion}
+
+A diferencia de las evaluaciones parciales anteriores -- que consistieron
+exclusivamente en entrega de código y defensa técnica en vivo, sin un informe escrito
+--, este documento sí exige explicitar las correcciones realizadas a lo largo del
+semestre. El historial de Git del proyecto permite reconstruir esa evolución con
+precisión, sin depender de la memoria:
+
+\begin{description}
+    \item[Mapeo de errores HTTP.] Hasta antes de la corrección, cualquier recurso no
+    encontrado (por ejemplo, un libro con un \texttt{id} inexistente) devolvía
+    \texttt{500 Internal Server Error} en lugar de \texttt{404}, porque no existía un
+    manejo de excepciones dedicado. Se creó una excepción
+    \texttt{RecursoNoEncontradoException} y un \texttt{GlobalExceptionHandler} por
+    servicio (reutilizando el que ya existía en catálogo en vez de duplicarlo), lo que
+    también reactivó bloques \texttt{catch (FeignException.NotFound)} que hasta
+    entonces eran código muerto.
+    \item[HATEOAS.] Inicialmente solo el microservicio de catálogo implementaba
+    HATEOAS. Se extendió el mismo patrón (\texttt{EntityModel}/\texttt{CollectionModel}
+    con enlaces \textit{self}) a los nueve microservicios restantes.
+    \item[Validaciones cruzadas vía Feign.] Se agregaron validaciones adicionales entre
+    servicios que aún no las tenían: \texttt{carrito} valida contra \texttt{clientes} y
+    \texttt{catálogo}; \texttt{reseñas} valida contra \texttt{catálogo} y
+    \texttt{clientes}; \texttt{pagos} y \texttt{envíos} validan contra \texttt{pedidos}.
+    \item[Cobertura de pruebas.] Se incorporó JaCoCo al POM raíz (antes no existía
+    medición real de cobertura) y se agregó una clase de prueba
+    \texttt{@WebMvcTest} por servicio, que verifica los códigos HTTP reales devueltos
+    por cada endpoint. La cobertura de la lógica de negocio (controladores y
+    servicios) es hoy de \textbf{93,6\%} (capítulo~\ref{ch:testing}).
+    \item[Relación JPA real entre entidades.] Se agregó al microservicio de envíos una
+    segunda entidad, \texttt{HistorialEstado}, en una relación real
+    \texttt{@OneToMany}/\texttt{@ManyToOne} con \texttt{Envio}, que registra cada
+    cambio de estado del envío. Se optó por este servicio en particular porque la
+    relación es puramente aditiva: no modifica el contrato de ningún endpoint
+    existente.
+    \item[Datos de prueba con Datafaker.] Se incorporó un \texttt{DataSeeder} por
+    servicio (\texttt{CommandLineRunner}) que genera datos de ejemplo realistas la
+    primera vez que cada tabla está vacía, reutilizando la propia capa de servicio (y
+    por lo tanto las validaciones Feign existentes) en lugar de insertar filas
+    directamente en el repositorio.
+    \item[Validación con Postman.] Se construyó una colección Postman que cubre CRUD y
+    comunicación REST entre microservicios para los diez servicios, verificada en vivo
+    contra el stack completo levantado en Docker antes de darla por válida
+    (capítulos~\ref{ch:crud} y~\ref{ch:rest}).
+    \item[Autenticación en clientes.] Se agregó JWT + BCrypt al microservicio de
+    clientes, protegiendo únicamente las operaciones de escritura sobre el propio
+    perfil (sección~\ref{ch:etica}). Se optó por este alcance acotado en vez de
+    proteger todo el microservicio, precisamente porque \texttt{carrito} y
+    \texttt{reseñas} dependen de poder leerlo vía Feign sin un token de usuario.
+    \item[Reportes de ventas.] Se agregaron reportes de ventas por sucursal y por
+    autor en \texttt{pedidos} (sección~\ref{ch:crud}), cerrando parcialmente la
+    exclusión de reportes documentada originalmente en la sección~\ref{ch:arquitectura}.
+\end{description}

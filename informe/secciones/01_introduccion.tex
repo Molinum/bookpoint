@@ -1,0 +1,49 @@
+\chapter{Introducción}
+
+\section{Contexto}
+
+BookPoint Chile es una empresa nacional dedicada a la venta de libros, artículos de
+papelería y material educativo. Nació como una librería independiente en Concepción y,
+debido al crecimiento sostenido de sus ventas, abrió nuevas sucursales en Temuco y La
+Serena.
+
+Actualmente, la empresa opera con un sistema monolítico que concentra ventas,
+inventario, despacho y atención de clientes en un único aplicativo. El aumento
+sostenido de pedidos, tanto presenciales como por canal web, ha comenzado a provocar
+lentitud en los procesos, problemas de stock desactualizado entre sucursales y demoras
+en la gestión de despachos.
+
+\section{Objetivo del informe}
+
+Este informe documenta la propuesta de solución tecnológica desarrollada para
+modernizar el sistema de BookPoint Chile, migrándolo desde su arquitectura monolítica
+actual hacia una arquitectura de microservicios independientes. En concreto, cubre los
+siete aspectos exigidos por la pauta de la Evaluación Final Transversal para la
+Situación Evaluativa 1 (Entrega por Encargo):
+
+\begin{enumerate}
+    \item La estrategia de microservicios utilizada para resolver el caso propuesto.
+    \item La evaluación de los enfoques éticos considerados en su implementación.
+    \item Las buenas prácticas de diseño, arquitectura, y las herramientas (Spring,
+    Maven, Git) utilizadas para desarrollar los componentes de backend.
+    \item La implementación de operaciones CRUD con JPA/ORM, validadas con Postman.
+    \item La comunicación RESTful entre microservicios, validada con Postman.
+    \item El desarrollo de pruebas unitarias con JUnit.
+    \item La implementación de un framework de documentación HATEOAS.
+\end{enumerate}
+
+\section{Alcance del proyecto}
+
+La solución desarrollada consta de \textbf{diez microservicios de negocio}
+(catálogo, inventario, sucursales, clientes, carrito, pedidos, pagos, envíos,
+notificaciones y reseñas), además de un servidor de descubrimiento (Eureka) y un API
+Gateway como punto de entrada único.
+
+Se priorizó cubrir en profundidad el \textbf{flujo comercial completo} descrito en el
+caso -- desde que un cliente explora el catálogo hasta que recibe su pedido y puede
+dejar una reseña --, con validaciones reales entre servicios, manejo de errores
+consistente y pruebas automatizadas. Quedan deliberadamente fuera del alcance actual
+funciones administrativas de soporte descritas en el caso (autenticación y roles,
+reportes de venta, promociones, facturación electrónica, transferencias entre
+sucursales), que se detallan junto con su justificación en la
+sección~\ref{ch:arquitectura}.

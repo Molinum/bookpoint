@@ -1,0 +1,101 @@
+\chapter{Comunicación RESTful Entre Microservicios}
+\label{ch:rest}
+
+\section{Feign Client como mecanismo de comunicación}
+
+La comunicación entre microservicios se implementa de forma declarativa mediante
+\textbf{Spring Cloud OpenFeign}, en lugar de construir las llamadas HTTP a mano con
+\texttt{RestTemplate} o \texttt{WebClient}. Un \texttt{@FeignClient} se declara como una
+interfaz Java; Spring Cloud genera la implementación en tiempo de ejecución y resuelve
+la dirección real del servicio destino consultando Eureka -- de modo que ningún
+microservicio necesita conocer el host o puerto de otro:
+
+\begin{lstlisting}[language=Java, caption={CatalogoClient.java (inventario) -- Feign client}]
+@FeignClient(name = "bookpoint-ms-catalogo")
+public interface CatalogoClient {
+
+    @GetMapping("/api/v1/catalogo/{id}")
+    EntityModel<LibroRentDTO> obtenerLibroPorId(@PathVariable("id") Long id);
+}
+\end{lstlisting}
+
+La Tabla~\ref{tab:dependencias-feign} resume las dependencias reales entre
+microservicios, todas implementadas mediante este mecanismo.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Microservicio} & \textbf{Depende vía Feign de} \\
+\midrule
+Inventario & Catálogo \\
+Carrito & Clientes, Catálogo \\
+Pedidos & Catálogo, Inventario \\
+Pagos & Pedidos \\
+Envíos & Pedidos \\
+Reseñas & Catálogo, Clientes \\
+\bottomrule
+\end{tabular}
+\caption{Dependencias reales entre microservicios vía Feign}
+\label{tab:dependencias-feign}
+\end{table}
+
+Los microservicios de sucursales y notificaciones no consumen a ningún otro servicio:
+sus dominios son autocontenidos.
+
+\section{Manejo de errores en comunicación remota}
+
+Una llamada Feign puede fallar de dos maneras cualitativamente distintas, y el proyecto
+las distingue explícitamente en lugar de tratarlas de forma genérica:
+
+\begin{enumerate}
+    \item \textbf{El recurso remoto no existe} (el servicio remoto respondió, pero con
+    \texttt{404}): se traduce a una excepción de negocio local
+    (\texttt{RecursoNoEncontradoException}), que a su vez el
+    \texttt{GlobalExceptionHandler} traduce a un \texttt{404} en la respuesta del
+    servicio que hizo la llamada.
+    \item \textbf{No se pudo establecer comunicación} (el servicio remoto no responde,
+    está caído, o Eureka aún no propagó su registro): se traduce a un error de servidor
+    (\texttt{500}), porque no es un problema del dato solicitado sino de la
+    infraestructura.
+\end{enumerate}
+
+\begin{lstlisting}[language=Java, caption={InventarioServiceImpl.java -- distinción entre 404 remoto y error de red}]
+try {
+    libroRemoto = catalogoClient.obtenerLibroPorId(inventarioDTO.getLibroId());
+} catch (feign.FeignException.NotFound e) {
+    throw new RecursoNoEncontradoException(
+        "El libro con ID " + inventarioDTO.getLibroId()
+        + " no existe en el catalogo.");
+} catch (Exception e) {
+    throw new RuntimeException(
+        "No se pudo conectar con el catalogo. Error de red: "
+        + e.getMessage());
+}
+\end{lstlisting}
+
+Esta distinción no es cosmética: un cliente de la API que recibe un \texttt{404} sabe
+que el dato solicitado no existe y puede corregir su petición; uno que recibe un
+\texttt{500} sabe que debe reintentar más tarde, porque el problema es de
+disponibilidad, no de los datos enviados.
+
+\section{Validación con Postman}
+
+La colección Postman incluye una carpeta dedicada, \textit{"Errores y validaciones
+cruzadas (404/400)"}, con casos negativos verificados en vivo contra el stack completo:
+
+\begin{itemize}
+    \item Registrar stock de un libro inexistente en inventario $\rightarrow$
+    \texttt{404} (validación cruzada contra catálogo).
+    \item Crear un pedido con un libro inexistente $\rightarrow$ \texttt{404}
+    (validación cruzada contra catálogo).
+    \item Crear un pedido con una cantidad mayor al stock disponible
+    $\rightarrow$ \texttt{400} ("Stock insuficiente").
+    \item Procesar un pago de un pedido inexistente $\rightarrow$ \texttt{404}
+    (validación cruzada contra pedidos).
+\end{itemize}
+
+Cada uno de estos casos fue ejecutado contra los diez microservicios levantados en
+Docker (no simulado) antes de incorporarlo a la colección, incluyendo la verificación
+manual de que el mensaje de error y el código HTTP devueltos coincidieran exactamente
+con lo documentado en este informe.

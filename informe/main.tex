@@ -1,0 +1,134 @@
+\documentclass[12pt,a4paper]{report}
+
+% ============================================================
+% Paquetes
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+
+% ============================================================
+% Datos del documento (editar aquí)
+% ============================================================
+\newcommand{\nombreEstudiante}{[Nombre del estudiante]}
+\newcommand{\nombreDocente}{[Nombre del docente]}
+\newcommand{\nombreAsignatura}{Desarrollo Fullstack I (DSY1103)}
+\newcommand{\nombreInstitucion}{Duoc UC}
+\newcommand{\fechaInforme}{\today}
+
+% ============================================================
+% Configuración visual
+% ============================================================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!50!black,
+    citecolor=black,
+    urlcolor=blue!50!black,
+    pdftitle={BookPoint Chile - Informe Tecnico ET},
+    pdfauthor={\nombreEstudiante}
+}
+
+\lstdefinelanguage{json}{
+    basicstyle=\ttfamily\small,
+    showstringspaces=false,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    string=[s]{"}{"},
+    stringstyle=\color{green!40!black},
+    literate=
+        *{0}{{{\color{blue!70!black}0}}}{1}
+         {1}{{{\color{blue!70!black}1}}}{1}
+         {2}{{{\color{blue!70!black}2}}}{1}
+         {3}{{{\color{blue!70!black}3}}}{1}
+         {4}{{{\color{blue!70!black}4}}}{1}
+         {5}{{{\color{blue!70!black}5}}}{1}
+         {6}{{{\color{blue!70!black}6}}}{1}
+         {7}{{{\color{blue!70!black}7}}}{1}
+         {8}{{{\color{blue!70!black}8}}}{1}
+         {9}{{{\color{blue!70!black}9}}}{1},
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    keywordstyle=\color{blue!70!black}\bfseries,
+    commentstyle=\color{gray},
+    stringstyle=\color{green!40!black},
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    tabsize=2
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{BookPoint Chile - Informe Tecnico}
+\fancyhead[R]{\leftmark}
+\fancyfoot[C]{\thepage}
+
+\titleformat{\chapter}[hang]{\normalfont\huge\bfseries}{\thechapter.}{20pt}{\huge}
+
+% ============================================================
+% Documento
+% ============================================================
+\begin{document}
+
+% ---------- Portada ----------
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Large \nombreInstitucion \par}
+    \vspace{0.3cm}
+    {\large Escuela de Informática y Telecomunicaciones \par}
+    \vspace{2cm}
+
+    {\Huge \bfseries BookPoint Chile \par}
+    \vspace{0.5cm}
+    {\Large Informe Técnico -- Arquitectura de Microservicios \par}
+    \vspace{0.3cm}
+    {\large Evaluación Final Transversal -- Situación Evaluativa 1: Entrega por Encargo \par}
+
+    \vspace{3cm}
+
+    {\large \nombreAsignatura \par}
+    \vspace{0.5cm}
+    {\large Estudiante: \nombreEstudiante \par}
+    \vspace{0.3cm}
+    {\large Docente: \nombreDocente \par}
+
+    \vfill
+
+    {\large \fechaInforme \par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+% ---------- Secciones ----------
+\input{secciones/01_introduccion}
+\input{secciones/02_arquitectura}
+\input{secciones/03_etica}
+\input{secciones/04_buenas_practicas}
+\input{secciones/05_crud_postman}
+\input{secciones/06_rest_postman}
+\input{secciones/07_testing}
+\input{secciones/08_hateoas}
+\input{secciones/09_conclusion}
+
+\end{document}

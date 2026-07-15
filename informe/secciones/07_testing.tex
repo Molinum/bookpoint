@@ -1,0 +1,107 @@
+\chapter{Pruebas Unitarias}
+\label{ch:testing}
+
+\section{Herramientas utilizadas}
+
+Las pruebas automatizadas del proyecto utilizan:
+
+\begin{itemize}
+    \item \textbf{JUnit 5} como framework de ejecución.
+    \item \textbf{Mockito} para simular (\textit{mock}) repositorios y clientes Feign
+    en las pruebas de la capa de servicio, aislándola de la base de datos real y de
+    los demás microservicios.
+    \item \textbf{@WebMvcTest} + \textbf{@MockitoBean} de Spring Boot Test para las
+    pruebas de la capa de controlador, que verifican el código HTTP real devuelto por
+    cada endpoint (\texttt{200}, \texttt{201}, \texttt{400}, \texttt{404}) sin levantar
+    el contexto completo de Spring ni requerir base de datos.
+    \item \textbf{JaCoCo} (\texttt{jacoco-maven-plugin}), integrado en el POM raíz, para
+    medir la cobertura real de código ejercitada por las pruebas.
+\end{itemize}
+
+\section{Estrategia de pruebas}
+
+Cada servicio cuenta con dos niveles de prueba:
+
+\begin{enumerate}
+    \item \textbf{Pruebas de servicio} (\texttt{XServiceImplTest}): verifican la lógica
+    de negocio con los repositorios y clientes Feign mockeados, siguiendo el patrón
+    \textit{Arrange-Act-Assert}. Cubren tanto el camino feliz como los casos de error
+    (recurso no encontrado, argumento inválido).
+    \item \textbf{Pruebas de controlador} (\texttt{XControllerTest}): verifican que
+    cada endpoint devuelva el código HTTP correcto y la forma esperada de respuesta
+    (incluyendo los enlaces HATEOAS), con el servicio mockeado mediante
+    \texttt{@MockitoBean}.
+\end{enumerate}
+
+El siguiente ejemplo, tomado de las pruebas del microservicio de envíos, ilustra ambos
+elementos: la verificación del camino feliz y la del registro correcto en el historial
+de estados (la relación JPA agregada en la sección~\ref{sec:evolucion}):
+
+\begin{lstlisting}[language=Java, caption={EnvioServiceImplTest.java -- fragmento}]
+@Test
+void deberiaCrearEnvioExitosamente() {
+    Envio envio = new Envio();
+    envio.setPedidoId(1L);
+    when(pedidoClient.obtenerPedidoPorId(1L)).thenReturn(new PedidoRentDTO());
+    when(envioRepository.save(any(Envio.class)))
+        .thenAnswer(invocacion -> invocacion.getArgument(0));
+
+    Envio resultado = envioService.crearEnvio(envio);
+
+    assertEquals("PREPARACION", resultado.getEstado());
+    verify(envioRepository, times(1)).save(any(Envio.class));
+    verify(historialEstadoRepository, times(1)).save(any(HistorialEstado.class));
+}
+\end{lstlisting}
+
+\section{Resultados de cobertura}
+
+La ejecución de \texttt{mvn test} sobre los doce módulos del proyecto arroja
+\textbf{168 pruebas} en total, todas exitosas. La Tabla~\ref{tab:cobertura} presenta la
+cobertura de líneas medida con JaCoCo, calculada de dos formas distintas:
+
+\begin{itemize}
+    \item \textbf{Cobertura de lógica de negocio}: solo paquetes
+    \texttt{controller}, \texttt{service} y \texttt{mapper} -- el código que realmente
+    contiene reglas de negocio y flujo de la aplicación.
+    \item \textbf{Cobertura del módulo completo}: incluye además clases de
+    configuración (\texttt{WebConfig}, \texttt{OpenApiConfig}), la clase principal de
+    arranque de Spring Boot, y los \texttt{DataSeeder} de Datafaker.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\toprule
+\textbf{Microservicio} & \textbf{Lógica de negocio} & \textbf{Módulo completo} \\
+\midrule
+Catálogo & 100,0\% & 71,9\% \\
+Clientes & 100,0\% & 70,6\% \\
+Inventario & 100,0\% & 53,3\% \\
+Notificaciones & 100,0\% & 70,3\% \\
+Sucursales & 100,0\% & 70,1\% \\
+Pedidos & 95,9\% & 39,6\% \\
+Envíos & 93,8\% & 57,8\% \\
+Pagos & 88,9\% & 49,5\% \\
+Carrito & 81,0\% & 45,4\% \\
+Reseñas & 84,3\% & 46,5\% \\
+\midrule
+\textbf{Total} & \textbf{93,6\%} & \textbf{55,2\%} \\
+\bottomrule
+\end{tabular}
+\caption{Cobertura de líneas por microservicio (JaCoCo)}
+\label{tab:cobertura}
+\end{table}
+
+La diferencia entre ambas columnas es intencional y se explica completamente: los
+\texttt{DataSeeder} agregados para cumplir el requisito de Datafaker (sección
+\ref{sec:evolucion}) son clases \texttt{CommandLineRunner} con lógica de reintento
+contra Eureka, verificadas mediante ejecución real en Docker contra el stack completo
+levantado -- no mediante pruebas unitarias con mocks, ya que su propósito es
+precisamente ejercitar la comunicación real entre servicios al arrancar. Contarlas
+como "no cubiertas" en un reporte de JaCoCo orientado a pruebas unitarias no refleja
+que su comportamiento no haya sido validado, sino que se validó con una herramienta
+distinta (verificación en vivo) y no cuenta como cobertura sobre las clases de
+configuración (\texttt{WebConfig}, \texttt{OpenApiConfig}) tampoco aporta información
+relevante, dado que no contienen lógica de negocio a probar. Por eso se reporta la
+cobertura de lógica de negocio como el indicador principal de calidad de las pruebas.

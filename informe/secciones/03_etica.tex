@@ -1,0 +1,129 @@
+\chapter{Evaluación de Enfoques Éticos}
+\label{ch:etica}
+
+\section{Privacidad de datos de clientes}
+
+El microservicio de clientes almacena datos personales identificables: nombre, correo
+electrónico, dirección y comuna. Al tratarse de un sistema que atiende tanto canal
+presencial como online, estos datos circulan entre varios microservicios (por ejemplo,
+\texttt{envíos} necesita la dirección de destino asociada a un pedido).
+
+Frente a esto se aplicó un principio de \textbf{minimización de datos}: cada
+microservicio conoce únicamente los campos estrictamente necesarios para su función. El
+microservicio de pagos, por ejemplo, no tiene acceso al nombre ni a la dirección del
+cliente -- solo al identificador del pedido y al monto a cobrar --, de modo que un
+eventual incidente de seguridad en el módulo de pagos no expondría por sí solo datos
+personales identificables.
+
+Inicialmente el sistema no implementaba autenticación ni cifrado de credenciales,
+decisión de alcance consciente dado el tiempo disponible del proyecto y no un descuido.
+Sin embargo, precisamente por tratarse de datos personales de clientes -- direcciones,
+historial de compras --, se decidió cerrar esa brecha al menos en el punto donde más
+importa: el microservicio de clientes ahora exige un token JWT válido para modificar o
+eliminar un perfil, y las contraseñas se almacenan con \texttt{BCryptPasswordEncoder}
+(hash con salt, nunca en texto plano). La protección se limitó deliberadamente a las
+operaciones de escritura sobre el propio perfil (\texttt{PUT}/\texttt{DELETE}) y no se
+extendió a las lecturas ni al resto de los microservicios: \texttt{carrito} y
+\texttt{reseñas} consultan clientes vía Feign para sus propias validaciones cruzadas, y
+esas llamadas de servicio a servicio no llevan el token de ningún usuario. Proteger
+también las lecturas habría exigido propagar un token de servicio a través de Feign --
+una solución más completa, pero fuera del alcance de tiempo disponible. Esta es, en sí
+misma, una decisión ética explícita: priorizar cerrar la brecha más sensible (que
+cualquiera pueda modificar los datos de otro cliente) por sobre una implementación
+completa pero más costosa.
+
+\section{Responsabilidad en el despliegue}
+
+BookPoint Chile opera simultáneamente en tres sucursales físicas y un canal web. A
+diferencia de un negocio puramente digital, una caída del sistema no solo afecta las
+ventas online: si el monolito actual falla, se detiene también la venta presencial en
+Concepción, Temuco y La Serena, porque todo depende del mismo proceso.
+
+La arquitectura de microservicios propuesta mitiga parcialmente este riesgo mediante
+\textbf{aislamiento de fallas}: si el microservicio de reseñas deja de responder, el
+cliente puede seguir explorando el catálogo, agregando productos al carrito y pagando
+su compra sin verse afectado. Esto traslada la responsabilidad del despliegue desde "no
+puede fallar nunca" (inviable en cualquier sistema real) hacia "una falla puntual no
+debe paralizar el negocio completo" -- un estándar más realista y, a la vez, más
+exigente en el diseño de cada servicio individual, porque cada uno debe manejar
+adecuadamente los casos en que sus dependencias no respondan (ver
+sección~\ref{ch:rest}, manejo de errores en comunicación remota).
+
+\section{Impacto en el empleo}
+
+El sistema automatiza tareas hoy realizadas manualmente por el personal de BookPoint:
+el registro de ventas en caja (equivalente al microservicio de pedidos), la consulta de
+disponibilidad de stock entre sucursales (inventario) y el seguimiento del estado de un
+envío (envíos, con su historial de estados).
+
+Es importante encuadrar este punto con honestidad: el sistema no reemplaza al
+Asistente de Ventas, al Encargado de Bodega ni al Área de Logística -- automatiza
+tareas repetitivas y propensas a error humano (como mantener sincronizado el stock
+entre tres sucursales a mano), liberando tiempo para tareas que sí requieren juicio
+humano: atención al cliente, resolución de casos excepcionales, gestión de proveedores.
+El riesgo ético real no está en automatizar estas tareas puntuales, sino en cómo se
+gestione la transición del personal hacia esas nuevas responsabilidades -- una decisión
+organizacional de BookPoint Chile que excede el alcance técnico de este informe, pero
+que vale la pena nombrar explícitamente como parte de la evaluación ética del proyecto.
+
+\section{Desafíos éticos específicos enfrentados durante el desarrollo}
+
+Más allá de los principios generales discutidos arriba, el desarrollo del proyecto
+presentó tensiones concretas entre avanzar rápido y hacerlo bien, y al menos una duda
+genuina sobre si una decisión de alcance era aceptable para un sistema real.
+
+\textbf{Errores que exigieron parar y corregir en vez de seguir avanzando.} En varios
+momentos del desarrollo surgieron problemas que hubiera sido más rápido ignorar o
+parchar superficialmente, pero que se decidió corregir de raíz:
+
+\begin{itemize}
+    \item Durante la mayor parte del desarrollo, cualquier recurso no encontrado
+    devolvía \texttt{500} en lugar de \texttt{404} en los diez servicios. Era un error
+    silencioso -- el sistema "funcionaba" en el sentido de que no se caía --, pero
+    devolver el código HTTP correcto es justamente lo que permite que un cliente de la
+    API distinga un error suyo de un error del servidor. Se optó por parar y corregirlo
+    en los diez servicios a la vez, en lugar de dejarlo para "después".
+    \item Un cliente de la API podía enviar un \texttt{id} propio al crear un recurso, y
+    ese \texttt{id} terminaba sobrescribiendo silenciosamente un recurso existente en
+    vez de crear uno nuevo. Es el tipo de bug que puede pasar desapercibido en las
+    demos (todo parece funcionar) pero que en un sistema real significaría corromper
+    datos de otro cliente sin ningún aviso.
+    \item Al centralizar la documentación Swagger de los diez microservicios a través
+    del Gateway, las rutas no llegaban correctamente: hubo que re-enrutar manualmente
+    los puertos en el YAML del Gateway y ajustar la configuración de cada
+    microservicio para que calzara con lo que el Gateway esperaba. Y al containerizar
+    los servicios, Swagger dejó de funcionar porque cada servicio reportaba su propia
+    IP interna de Docker como servidor, en vez de una URL que el navegador del cliente
+    pudiera alcanzar. Ninguno de los dos problemas era obvio a primera vista, y ambos
+    se podrían haber dejado "así no más" con la excusa de que la API seguía
+    respondiendo -- se optó por diagnosticar la causa real en vez de silenciar el
+    síntoma.
+    \item La decisión de alcance de la autenticación JWT (sección~\ref{ch:etica}) es en
+    sí misma un ejemplo de esta tensión: la alternativa más rápida habría sido proteger
+    todo el microservicio de clientes sin pensar en las consecuencias; se optó por
+    invertir tiempo en entender qué llamadas dependían de un acceso sin token
+    (\texttt{carrito} y \texttt{reseñas} vía Feign) antes de decidir el alcance
+    correcto de la protección.
+\end{itemize}
+
+\textbf{Duda genuina sobre decisiones de alcance.} La ausencia inicial de
+autenticación fue la que generó más incomodidad real durante el desarrollo: saber que,
+mientras no se implementara, cualquiera con acceso a la API podía consultar o
+modificar los datos de cualquier cliente sin restricción, se sentía como una brecha
+real y no solo teórica -- razón por la cual se decidió cerrarla al menos parcialmente
+antes de la entrega final, en lugar de dejarla únicamente documentada como limitación.
+
+Una duda similar surgió con la exclusión de reportes de venta y de la gestión de roles
+administrativos (sección~\ref{ch:arquitectura}): un Jefe de Sucursal o un Administrador
+del Sistema reales necesitarían esas funciones para operar el negocio día a día, y su
+ausencia no es solo una limitación técnica, sino una función de negocio real que el
+caso pide. A diferencia de la autenticación, esta duda llevó a revisar el alcance
+antes de la entrega final: los reportes de ventas por sucursal y por autor se
+implementaron (sección~\ref{ch:crud}), por ser acotados y no requerir cambios de
+arquitectura. La gestión de usuarios y permisos por rol, en cambio, se decidió
+dejar fuera deliberadamente -- a diferencia de un reporte, que es una vista de solo
+lectura sobre datos que ya existen, un sistema de roles reales implica un modelo de
+autorización completo y una decisión arquitectónica (¿es un nuevo microservicio? ¿se
+integra a uno existente?) que merece más tiempo de análisis del que quedaba
+disponible, y apurarla habría sido peor que documentarla honestamente como
+limitación.

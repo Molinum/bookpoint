@@ -1,0 +1,29 @@
+\chapter{Conclusión}
+
+El sistema desarrollado responde directamente a los tres síntomas identificados en el
+caso BookPoint Chile: la lentitud de procesos se aborda mediante microservicios
+independientes que escalan y se despliegan sin afectarse entre sí; el stock
+desactualizado entre sucursales se resuelve centralizando el inventario en un servicio
+único consultado por todos los canales; y las demoras de despacho se abordan con un
+microservicio de envíos dedicado, capaz de registrar y exponer el historial completo de
+estados de cada envío.
+
+La arquitectura resultante -- diez microservicios independientes, cada uno con su
+propia base de datos, comunicándose vía Feign y descubriéndose mediante Eureka detrás de
+un API Gateway -- cubre en profundidad el flujo comercial completo del caso: explorar el
+catálogo, agregar productos al carrito, comprar, pagar, despachar y reseñar. Quedan
+deliberadamente fuera de alcance funciones administrativas de soporte (autenticación y
+roles, reportes de venta, promociones, transferencias entre sucursales), priorizando
+profundidad y calidad en el flujo principal por sobre cobertura superficial de la
+totalidad del caso.
+
+Un aspecto que vale la pena destacar de este proceso es que las correcciones
+documentadas en la sección~\ref{sec:evolucion} no fueron anticipadas desde el diseño
+inicial, sino descubiertas y corregidas iterativamente a medida que se sometía el
+sistema a verificación real -- probando cada flujo contra el stack completo levantado
+en Docker, en vez de asumir que el código funcionaba por haber compilado. Esa disciplina
+de verificación empírica es, en sí misma, una de las buenas prácticas que este informe
+buscó demostrar.
+
+% Espacio para agregar una reflexión personal sobre aprendizajes del proceso, si el
+% estudiante quiere incorporar algo aquí antes de la entrega final.

@@ -1,0 +1,113 @@
+\chapter{Operaciones CRUD con JPA/ORM validadas con Postman}
+\label{ch:crud}
+
+\section{Persistencia con Spring Data JPA}
+
+Cada microservicio modela su dominio como una entidad JPA independiente, persistida en
+su propia base de datos mediante \texttt{JpaRepository}, sin necesidad de escribir SQL
+manual para las operaciones CRUD básicas. El siguiente ejemplo corresponde a la entidad
+\texttt{Libro} del microservicio de catálogo:
+
+\begin{lstlisting}[language=Java, caption={Libro.java -- entidad JPA de catálogo}]
+@Entity
+@Table(name = "libros")
+@Data
+public class Libro {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String titulo;
+    private String autor;
+    private Double precio;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption={LibroRepository.java -- repositorio}]
+public interface LibroRepository extends JpaRepository<Libro, Long> {
+}
+\end{lstlisting}
+
+La sola extensión de \texttt{JpaRepository<Libro, Long>} otorga las operaciones
+\texttt{save}, \texttt{findById}, \texttt{findAll} y \texttt{deleteById} sin
+implementación adicional. En los servicios donde la consulta lo requiere se agregan
+métodos derivados (por ejemplo, \texttt{findByLibroIdAndSucursal} en inventario, o
+\texttt{findByCodigoSeguimiento} en envíos), que Spring Data traduce automáticamente a
+JPQL a partir del nombre del método.
+
+Sobre esta base, cada servicio expone las cuatro operaciones CRUD que correspondan a su
+dominio a través de endpoints REST. Por ejemplo, el microservicio de clientes expone
+las cuatro operaciones completas:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Operación} & \textbf{Método HTTP} & \textbf{Endpoint} \\
+\midrule
+Crear & POST & \texttt{/api/v1/clientes} \\
+Leer (uno) & GET & \texttt{/api/v1/clientes/\{id\}} \\
+Leer (todos) & GET & \texttt{/api/v1/clientes} \\
+Actualizar & PUT & \texttt{/api/v1/clientes/\{id\}} \\
+Eliminar & DELETE & \texttt{/api/v1/clientes/\{id\}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Otros servicios exponen un subconjunto de estas operaciones cuando el dominio no
+requiere todas -- por ejemplo, catálogo no expone \texttt{DELETE} porque un libro
+referenciado por pedidos o reseñas no debe poder eliminarse sin más.
+
+\section{Validación con la colección Postman}
+
+Para cumplir con el requisito de validar las operaciones CRUD con datos provenientes de
+Postman, se construyó una colección (\texttt{postman/BookPoint.postman\_collection.json})
+que cubre los diez microservicios, documentada en \texttt{postman/README.md}.
+
+La colección está organizada en once carpetas ordenadas según la cadena real de
+dependencias entre servicios (catálogo $\rightarrow$ clientes $\rightarrow$ inventario
+$\rightarrow$ carrito $\rightarrow$ pedidos $\rightarrow$ pagos $\rightarrow$ envíos
+$\rightarrow$ reseñas $\rightarrow$ notificaciones $\rightarrow$ sucursales), de modo
+que puede ejecutarse de principio a fin con \textit{Collection Runner}. Cada request de
+creación incluye un script de prueba que captura el \texttt{id} devuelto por la API y
+lo guarda en una variable de colección, reutilizada automáticamente por los siguientes
+requests -- por ejemplo, el \texttt{id} del libro creado en la carpeta de catálogo se
+reutiliza al registrar stock en inventario, agregarlo al carrito y generar un pedido.
+
+\begin{lstlisting}[caption={Script de test de Postman -- captura automática de ID al crear un libro}]
+pm.test('Status 201', () => pm.response.to.have.status(201));
+const json = pm.response.json();
+pm.collectionVariables.set('libroId', json.id);
+\end{lstlisting}
+
+Todas las requests de la colección fueron probadas en vivo contra los diez servicios
+levantados en Docker antes de considerarlas válidas -- no se trata de una colección
+escrita en teoría, sino verificada extremo a extremo, incluyendo los datos generados
+automáticamente por Datafaker como insumo (sección~\ref{sec:evolucion}).
+
+\section{Reportes de ventas}
+
+El caso pide que el perfil Jefe de Sucursal pueda "generar reportes de ventas por
+categoría, autor o sucursal". Se implementaron los dos primeros en el microservicio de
+pedidos, que ya concentra los datos de venta (\texttt{sucursal}, \texttt{libroId},
+\texttt{total}):
+
+\begin{itemize}
+    \item \texttt{GET /api/v1/pedidos/reportes/por-sucursal}: agregación directa sobre
+    la propia base de datos de pedidos (\texttt{GROUP BY sucursal} vía una consulta
+    JPQL con proyección de interfaz de Spring Data).
+    \item \texttt{GET /api/v1/pedidos/reportes/por-autor}: como el autor no vive en la
+    base de datos de pedidos sino en la de catálogo, no es posible resolverlo con un
+    \texttt{JOIN} SQL. Se agregan primero las ventas por \texttt{libroId}, y luego se
+    enriquece cada grupo con el autor correspondiente vía Feign, reagrupando en memoria
+    los libros que comparten autor.
+\end{itemize}
+
+El reporte por categoría se dejó fuera: exigiría agregar un campo de categoría o
+género al catálogo, un cambio de esquema en otro microservicio no motivado por ninguna
+otra necesidad actual del sistema.
+
+Se verificó en vivo, contra el stack completo levantado en Docker con datos generados
+por Datafaker, que ambos reportes son consistentes entre sí: la suma total de ventas
+agrupada por sucursal coincide exactamente con la suma total agrupada por autor
+(\$796.892 en ambos casos sobre el mismo conjunto de pedidos), confirmando que ninguna
+venta se pierde ni se duplica al reagrupar.
