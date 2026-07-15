@@ -17,6 +17,11 @@ springdoc:
   api-docs:
     path: /api/v1/clientes/v3/api-docs
 
+app:
+  jwt:
+    secret: "bookpoint-clientes-jwt-secreto-de-desarrollo-cambiar-en-produccion-2026"
+    expiration-ms: 3600000
+
 eureka:
   client:
     service-url:

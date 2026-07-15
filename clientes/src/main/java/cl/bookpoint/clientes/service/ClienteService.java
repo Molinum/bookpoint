@@ -9,4 +9,5 @@ public interface ClienteService {
     Cliente obtenerPorId(Long id);
     Cliente actualizarCliente(Long id, Cliente cliente);
     void eliminarCliente(Long id);
+    String login(String email, String password);
 }

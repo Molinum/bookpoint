@@ -41,6 +41,7 @@ Los servicios tardan ~20-40 segundos en levantar. Los llamados directos a cada s
 
 4. Cada request `POST` de creación guarda su ID en una variable de colección (`libroId`, `clienteId`, `pedidoId`, etc.) automáticamente vía script de test — no hay que copiar/pegar IDs a mano.
 5. La carpeta 11 demuestra el mapeo de errores agregado en el proyecto: libro/pedido/pago inexistente → `404`, stock insuficiente → `400`, validación de campo (`@NotBlank`/`@NotNull`) → `400`.
+6. **Clientes tiene JWT en `PUT`/`DELETE`** (registro, login y lecturas siguen abiertos). El request "Login" guarda el token en `{{clienteToken}}` automáticamente; los requests de actualizar/eliminar ya lo mandan en el header `Authorization: Bearer {{clienteToken}}`. Un cliente solo puede modificar su propio perfil — token de otro cliente devuelve `403`.
 
 ## Verificación
 

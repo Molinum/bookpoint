@@ -1,5 +1,6 @@
 package cl.bookpoint.clientes.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,4 +19,8 @@ public class Cliente {
     private String email;
     private String direccion;
     private String comuna;
+
+    // WRITE_ONLY: se acepta al crear/loguear, pero nunca se serializa de vuelta en una respuesta.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
 }

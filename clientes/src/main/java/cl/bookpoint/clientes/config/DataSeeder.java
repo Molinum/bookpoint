@@ -43,6 +43,7 @@ public class DataSeeder implements CommandLineRunner {
             cliente.setEmail(faker.internet().emailAddress());
             cliente.setDireccion(faker.address().streetAddress());
             cliente.setComuna(faker.options().nextElement(COMUNAS));
+            cliente.setPassword("Cambiar123!");
             clienteService.crearCliente(cliente);
         }
         log.info("Datafaker sembró {} clientes.", CANTIDAD_CLIENTES);

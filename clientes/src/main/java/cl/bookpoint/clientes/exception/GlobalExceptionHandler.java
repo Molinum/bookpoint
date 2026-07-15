@@ -17,4 +17,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> manejarArgumentoInvalido(IllegalArgumentException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<String> manejarCredencialesInvalidas(CredencialesInvalidasException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+    }
+
+    @ExceptionHandler(AccesoDenegadoException.class)
+    public ResponseEntity<String> manejarAccesoDenegado(AccesoDenegadoException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+    }
 }

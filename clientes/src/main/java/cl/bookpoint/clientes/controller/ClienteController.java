@@ -1,5 +1,7 @@
 package cl.bookpoint.clientes.controller;
 
+import cl.bookpoint.clientes.dto.LoginRequestDTO;
+import cl.bookpoint.clientes.exception.AccesoDenegadoException;
 import cl.bookpoint.clientes.model.Cliente;
 import cl.bookpoint.clientes.service.ClienteService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,8 +12,10 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/clientes")
@@ -27,6 +31,12 @@ public class ClienteController {
         EntityModel<Cliente> model = EntityModel.of(creado);
         model.add(linkTo(methodOn(ClienteController.class).obtenerPorId(creado.getId())).withSelfRel());
         return new ResponseEntity<>(model, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequestDTO loginRequest) {
+        String token = clienteService.login(loginRequest.getEmail(), loginRequest.getPassword());
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @GetMapping
@@ -51,13 +61,25 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> actualizarCliente(@PathVariable Long id, @RequestBody Cliente cliente) {
+    public ResponseEntity<Cliente> actualizarCliente(@PathVariable Long id, @RequestBody Cliente cliente,
+                                                      Authentication authentication) {
+        validarPropioPerfil(id, authentication);
         return ResponseEntity.ok(clienteService.actualizarCliente(id, cliente));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarCliente(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminarCliente(@PathVariable Long id, Authentication authentication) {
+        validarPropioPerfil(id, authentication);
         clienteService.eliminarCliente(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Un cliente autenticado solo puede modificar o eliminar su propio perfil,
+    // nunca el de otro cliente, aunque tenga un token válido.
+    private void validarPropioPerfil(Long id, Authentication authentication) {
+        Long clienteAutenticado = Long.valueOf(authentication.getName());
+        if (!clienteAutenticado.equals(id)) {
+            throw new AccesoDenegadoException("No tienes permiso para modificar este perfil.");
+        }
     }
 }
