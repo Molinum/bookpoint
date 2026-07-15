@@ -2,6 +2,10 @@ package cl.bookpoint.inventario.controller;
 
 import java.util.List;
 
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -33,16 +37,24 @@ public class InventarioController {
 
     @PostMapping
     @Operation(summary = "Registrar o actualizar stock", description = "Permite asignar stock de un libro a una sucursal validando su existencia en el catálogo")
-    public ResponseEntity<Inventario> registrarStock(@Valid @RequestBody InventarioDTO inventarioDTO) {
+    public ResponseEntity<EntityModel<Inventario>> registrarStock(@Valid @RequestBody InventarioDTO inventarioDTO) {
         Inventario nuevoInventario = inventarioService.registrarStock(inventarioDTO);
-        return new ResponseEntity<>(nuevoInventario, HttpStatus.CREATED);
+        EntityModel<Inventario> model = EntityModel.of(nuevoInventario);
+        model.add(linkTo(methodOn(InventarioController.class).obtenerStockPorLibro(nuevoInventario.getLibroId())).withSelfRel());
+        return new ResponseEntity<>(model, HttpStatus.CREATED);
     }
 
     @GetMapping("/libro/{libroId}")
     @Operation(summary = "Obtener stock por ID de Libro", description = "Busca el stock disponible del libro en todas las sucursales")
-    public ResponseEntity<List<Inventario>> obtenerStockPorLibro(@PathVariable Long libroId) {
-        List<Inventario> stock = inventarioService.obtenerStockPorLibro(libroId);
-        return ResponseEntity.ok(stock);
+    public ResponseEntity<CollectionModel<EntityModel<Inventario>>> obtenerStockPorLibro(@PathVariable Long libroId) {
+        List<EntityModel<Inventario>> stock = inventarioService.obtenerStockPorLibro(libroId).stream()
+                .map(inventario -> EntityModel.of(inventario,
+                        linkTo(methodOn(InventarioController.class).obtenerStockPorLibro(libroId)).withSelfRel()))
+                .toList();
+
+        CollectionModel<EntityModel<Inventario>> collectionModel = CollectionModel.of(stock);
+        collectionModel.add(linkTo(methodOn(InventarioController.class).obtenerStockPorLibro(libroId)).withSelfRel());
+        return ResponseEntity.ok(collectionModel);
     }
 
     @PutMapping("/descontar")

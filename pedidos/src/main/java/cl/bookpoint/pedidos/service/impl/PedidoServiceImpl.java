@@ -79,4 +79,10 @@ public class PedidoServiceImpl implements PedidoService {
     public List<Pedido> obtenerTodos() {
         return pedidoRepository.findAll();
     }
+
+    @Override
+    public Pedido obtenerPorId(Long id) {
+        return pedidoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido no encontrado con id: " + id));
+    }
 }

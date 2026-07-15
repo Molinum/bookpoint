@@ -4,6 +4,10 @@ import cl.bookpoint.resenas.model.Resena;
 import cl.bookpoint.resenas.service.ResenaService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,18 +22,36 @@ public class ResenaController {
     private final ResenaService resenaService;
 
     @PostMapping
-    public ResponseEntity<Resena> crearResena(@RequestBody Resena resena) {
-        return new ResponseEntity<>(resenaService.crearResena(resena), HttpStatus.CREATED);
+    public ResponseEntity<EntityModel<Resena>> crearResena(@RequestBody Resena resena) {
+        Resena creada = resenaService.crearResena(resena);
+        EntityModel<Resena> model = EntityModel.of(creada);
+        model.add(linkTo(methodOn(ResenaController.class).obtenerPorLibro(creada.getLibroId())).withSelfRel());
+        return new ResponseEntity<>(model, HttpStatus.CREATED);
     }
 
     @GetMapping("/libro/{libroId}")
-    public ResponseEntity<List<Resena>> obtenerPorLibro(@PathVariable Long libroId) {
-        return ResponseEntity.ok(resenaService.obtenerPorLibro(libroId));
+    public ResponseEntity<CollectionModel<EntityModel<Resena>>> obtenerPorLibro(@PathVariable Long libroId) {
+        List<EntityModel<Resena>> resenas = resenaService.obtenerPorLibro(libroId).stream()
+                .map(resena -> EntityModel.of(resena,
+                        linkTo(methodOn(ResenaController.class).obtenerPorLibro(libroId)).withSelfRel()))
+                .toList();
+
+        CollectionModel<EntityModel<Resena>> collectionModel = CollectionModel.of(resenas);
+        collectionModel.add(linkTo(methodOn(ResenaController.class).obtenerPorLibro(libroId)).withSelfRel());
+        collectionModel.add(linkTo(methodOn(ResenaController.class).promedioPorLibro(libroId)).withRel("promedio"));
+        return ResponseEntity.ok(collectionModel);
     }
 
     @GetMapping("/cliente/{clienteId}")
-    public ResponseEntity<List<Resena>> obtenerPorCliente(@PathVariable Long clienteId) {
-        return ResponseEntity.ok(resenaService.obtenerPorCliente(clienteId));
+    public ResponseEntity<CollectionModel<EntityModel<Resena>>> obtenerPorCliente(@PathVariable Long clienteId) {
+        List<EntityModel<Resena>> resenas = resenaService.obtenerPorCliente(clienteId).stream()
+                .map(resena -> EntityModel.of(resena,
+                        linkTo(methodOn(ResenaController.class).obtenerPorLibro(resena.getLibroId())).withSelfRel()))
+                .toList();
+
+        CollectionModel<EntityModel<Resena>> collectionModel = CollectionModel.of(resenas);
+        collectionModel.add(linkTo(methodOn(ResenaController.class).obtenerPorCliente(clienteId)).withSelfRel());
+        return ResponseEntity.ok(collectionModel);
     }
 
     @DeleteMapping("/{id}")

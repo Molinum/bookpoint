@@ -4,6 +4,10 @@ import cl.bookpoint.pagos.model.Pago;
 import cl.bookpoint.pagos.service.PagoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,22 +22,40 @@ public class PagoController {
     private final PagoService pagoService;
 
     @PostMapping
-    public ResponseEntity<Pago> procesarPago(@RequestBody Pago pago) {
-        return new ResponseEntity<>(pagoService.procesarPago(pago), HttpStatus.CREATED);
+    public ResponseEntity<EntityModel<Pago>> procesarPago(@RequestBody Pago pago) {
+        Pago creado = pagoService.procesarPago(pago);
+        EntityModel<Pago> model = EntityModel.of(creado);
+        model.add(linkTo(methodOn(PagoController.class).obtenerPorId(creado.getId())).withSelfRel());
+        return new ResponseEntity<>(model, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<Pago>> listarPagos() {
-        return ResponseEntity.ok(pagoService.listarPagos());
+    public ResponseEntity<CollectionModel<EntityModel<Pago>>> listarPagos() {
+        List<EntityModel<Pago>> pagos = pagoService.listarPagos().stream()
+                .map(pago -> EntityModel.of(pago,
+                        linkTo(methodOn(PagoController.class).obtenerPorId(pago.getId())).withSelfRel()))
+                .toList();
+
+        CollectionModel<EntityModel<Pago>> collectionModel = CollectionModel.of(pagos);
+        collectionModel.add(linkTo(methodOn(PagoController.class).listarPagos()).withSelfRel());
+        return ResponseEntity.ok(collectionModel);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Pago> obtenerPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(pagoService.obtenerPorId(id));
+    public ResponseEntity<EntityModel<Pago>> obtenerPorId(@PathVariable Long id) {
+        Pago pago = pagoService.obtenerPorId(id);
+        EntityModel<Pago> model = EntityModel.of(pago);
+        model.add(linkTo(methodOn(PagoController.class).obtenerPorId(id)).withSelfRel());
+        model.add(linkTo(methodOn(PagoController.class).listarPagos()).withRel("listar"));
+        return ResponseEntity.ok(model);
     }
 
     @GetMapping("/pedido/{pedidoId}")
-    public ResponseEntity<Pago> obtenerPorPedido(@PathVariable Long pedidoId) {
-        return ResponseEntity.ok(pagoService.obtenerPorPedido(pedidoId));
+    public ResponseEntity<EntityModel<Pago>> obtenerPorPedido(@PathVariable Long pedidoId) {
+        Pago pago = pagoService.obtenerPorPedido(pedidoId);
+        EntityModel<Pago> model = EntityModel.of(pago);
+        model.add(linkTo(methodOn(PagoController.class).obtenerPorId(pago.getId())).withSelfRel());
+        model.add(linkTo(methodOn(PagoController.class).listarPagos()).withRel("listar"));
+        return ResponseEntity.ok(model);
     }
 }

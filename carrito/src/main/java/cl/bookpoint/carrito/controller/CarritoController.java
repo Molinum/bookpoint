@@ -4,6 +4,10 @@ import cl.bookpoint.carrito.model.CarritoItem;
 import cl.bookpoint.carrito.service.CarritoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +23,23 @@ public class CarritoController {
     private final CarritoService carritoService;
 
     @PostMapping
-    public ResponseEntity<CarritoItem> agregarAlCarrito(@RequestBody CarritoItem item) {
-        return new ResponseEntity<>(carritoService.agregarItem(item), HttpStatus.CREATED);
+    public ResponseEntity<EntityModel<CarritoItem>> agregarAlCarrito(@RequestBody CarritoItem item) {
+        CarritoItem creado = carritoService.agregarItem(item);
+        EntityModel<CarritoItem> model = EntityModel.of(creado);
+        model.add(linkTo(methodOn(CarritoController.class).obtenerPorCliente(creado.getClienteId())).withSelfRel());
+        return new ResponseEntity<>(model, HttpStatus.CREATED);
     }
 
     @GetMapping("/cliente/{clienteId}")
-    public ResponseEntity<List<CarritoItem>> obtenerPorCliente(@PathVariable Long clienteId) {
-        return ResponseEntity.ok(carritoService.obtenerPorCliente(clienteId));
+    public ResponseEntity<CollectionModel<EntityModel<CarritoItem>>> obtenerPorCliente(@PathVariable Long clienteId) {
+        List<EntityModel<CarritoItem>> items = carritoService.obtenerPorCliente(clienteId).stream()
+                .map(item -> EntityModel.of(item,
+                        linkTo(methodOn(CarritoController.class).obtenerPorCliente(clienteId)).withSelfRel()))
+                .toList();
+
+        CollectionModel<EntityModel<CarritoItem>> collectionModel = CollectionModel.of(items);
+        collectionModel.add(linkTo(methodOn(CarritoController.class).obtenerPorCliente(clienteId)).withSelfRel());
+        return ResponseEntity.ok(collectionModel);
     }
 
     @PutMapping("/{id}")

@@ -9,6 +9,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,5 +119,31 @@ public class PedidoServiceTest {
         // Verificamos que NUNCA se intente descontar stock ni guardar el pedido
         verify(inventarioClient, never()).descontarStock(any(), any(), any());
         verify(pedidoRepository, never()).save(any());
+    }
+
+    @Test
+    void obtenerPorId_CuandoExiste_DebeRetornarPedido() {
+        // GIVEN
+        cl.bookpoint.pedidos.model.Pedido pedidoMock = new cl.bookpoint.pedidos.model.Pedido();
+        pedidoMock.setId(100L);
+        pedidoMock.setClienteNombre("Juan Perez");
+        when(pedidoRepository.findById(100L)).thenReturn(Optional.of(pedidoMock));
+
+        // WHEN
+        cl.bookpoint.pedidos.model.Pedido resultado = pedidoService.obtenerPorId(100L);
+
+        // THEN
+        assertNotNull(resultado);
+        assertEquals("Juan Perez", resultado.getClienteNombre());
+    }
+
+    @Test
+    void obtenerPorId_CuandoNoExiste_DebeLanzarExcepcion() {
+        // GIVEN
+        when(pedidoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // WHEN & THEN
+        RuntimeException excepcion = assertThrows(RuntimeException.class, () -> pedidoService.obtenerPorId(999L));
+        assertEquals("Pedido no encontrado con id: 999", excepcion.getMessage());
     }
 }

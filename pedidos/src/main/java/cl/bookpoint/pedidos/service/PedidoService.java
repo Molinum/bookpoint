@@ -8,4 +8,5 @@ import cl.bookpoint.pedidos.model.Pedido;
 public interface PedidoService {
     Pedido crearPedido(PedidoDTO pedidoDTO);
     List<Pedido> obtenerTodos();
+    Pedido obtenerPorId(Long id);
 }
