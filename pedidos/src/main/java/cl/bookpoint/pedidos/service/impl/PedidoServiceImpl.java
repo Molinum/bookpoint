@@ -1,6 +1,8 @@
 package cl.bookpoint.pedidos.service.impl;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,8 @@ import cl.bookpoint.pedidos.dto.InventarioRentDTO;
 import cl.bookpoint.pedidos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pedidos.dto.LibroRentDTO;
 import cl.bookpoint.pedidos.dto.PedidoDTO;
+import cl.bookpoint.pedidos.dto.ReporteAutorDTO;
+import cl.bookpoint.pedidos.dto.ReporteSucursalDTO;
 import cl.bookpoint.pedidos.model.Pedido;
 import cl.bookpoint.pedidos.repository.PedidoRepository;
 import cl.bookpoint.pedidos.service.PedidoService;
@@ -92,5 +96,44 @@ public class PedidoServiceImpl implements PedidoService {
     public Pedido obtenerPorId(Long id) {
         return pedidoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pedido no encontrado con id: " + id));
+    }
+
+    @Override
+    public List<ReporteSucursalDTO> obtenerReportePorSucursal() {
+        return pedidoRepository.obtenerVentasPorSucursal().stream()
+                .map(v -> new ReporteSucursalDTO(v.getSucursal(), v.getCantidadPedidos(), v.getTotalVentas()))
+                .sorted(Comparator.comparing(ReporteSucursalDTO::getTotalVentas).reversed())
+                .toList();
+    }
+
+    @Override
+    public List<ReporteAutorDTO> obtenerReportePorAutor() {
+        // Cada microservicio tiene su propia base de datos: el autor no vive en pedidos,
+        // asi que hay que enriquecer via Feign y reagrupar en memoria, no con un JOIN SQL.
+        record VentaConAutor(String autor, Long cantidad, Double total) {}
+
+        List<VentaConAutor> ventasConAutor = pedidoRepository.obtenerVentasPorLibro().stream()
+                .map(venta -> new VentaConAutor(obtenerAutorDeLibro(venta.getLibroId()),
+                        venta.getCantidadVendida(), venta.getTotalVentas()))
+                .toList();
+
+        return ventasConAutor.stream()
+                .collect(Collectors.groupingBy(VentaConAutor::autor))
+                .entrySet().stream()
+                .map(entry -> new ReporteAutorDTO(
+                        entry.getKey(),
+                        entry.getValue().stream().mapToLong(VentaConAutor::cantidad).sum(),
+                        entry.getValue().stream().mapToDouble(VentaConAutor::total).sum()))
+                .sorted(Comparator.comparing(ReporteAutorDTO::getTotalVentas).reversed())
+                .toList();
+    }
+
+    private String obtenerAutorDeLibro(Long libroId) {
+        try {
+            LibroRentDTO libro = catalogoClient.obtenerLibroPorId(libroId);
+            return libro != null && libro.getAutor() != null ? libro.getAutor() : "Autor desconocido";
+        } catch (Exception e) {
+            return "Autor desconocido";
+        }
     }
 }

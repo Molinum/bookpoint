@@ -291,6 +291,20 @@
             "pm.test('Status 200', () => pm.response.to.have.status(200));"
           ]}}],
           "request": { "method": "GET", "url": { "raw": "{{pedidos_url}}/{{pedidoId}}", "host": ["{{pedidos_url}}"], "path": ["{{pedidoId}}"] } }
+        },
+        {
+          "name": "Reporte de Ventas por Sucursal",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pedidos_url}}/reportes/por-sucursal", "host": ["{{pedidos_url}}"], "path": ["reportes", "por-sucursal"] } }
+        },
+        {
+          "name": "Reporte de Ventas por Autor (Feign -> Catálogo)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}],
+          "request": { "method": "GET", "url": { "raw": "{{pedidos_url}}/reportes/por-autor", "host": ["{{pedidos_url}}"], "path": ["reportes", "por-autor"] } }
         }
       ]
     },

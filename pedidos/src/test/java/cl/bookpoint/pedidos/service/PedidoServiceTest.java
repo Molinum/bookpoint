@@ -27,8 +27,12 @@ import cl.bookpoint.pedidos.client.InventarioClient;
 import cl.bookpoint.pedidos.dto.InventarioRentDTO;
 import cl.bookpoint.pedidos.dto.LibroRentDTO;
 import cl.bookpoint.pedidos.dto.PedidoDTO;
+import cl.bookpoint.pedidos.dto.ReporteAutorDTO;
+import cl.bookpoint.pedidos.dto.ReporteSucursalDTO;
 import cl.bookpoint.pedidos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pedidos.repository.PedidoRepository;
+import cl.bookpoint.pedidos.repository.VentasPorLibroProjection;
+import cl.bookpoint.pedidos.repository.VentasPorSucursalProjection;
 import cl.bookpoint.pedidos.service.impl.PedidoServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
@@ -221,5 +225,78 @@ public class PedidoServiceTest {
         RecursoNoEncontradoException excepcion = assertThrows(RecursoNoEncontradoException.class,
                 () -> pedidoService.obtenerPorId(999L));
         assertEquals("Pedido no encontrado con id: 999", excepcion.getMessage());
+    }
+
+    @Test
+    void obtenerReportePorSucursal_DebeMapearProyeccionesADTO() {
+        // GIVEN
+        VentasPorSucursalProjection concepcion = org.mockito.Mockito.mock(VentasPorSucursalProjection.class);
+        when(concepcion.getSucursal()).thenReturn("Concepción");
+        when(concepcion.getCantidadPedidos()).thenReturn(5L);
+        when(concepcion.getTotalVentas()).thenReturn(50000.0);
+
+        VentasPorSucursalProjection temuco = org.mockito.Mockito.mock(VentasPorSucursalProjection.class);
+        when(temuco.getSucursal()).thenReturn("Temuco");
+        when(temuco.getCantidadPedidos()).thenReturn(2L);
+        when(temuco.getTotalVentas()).thenReturn(80000.0);
+
+        when(pedidoRepository.obtenerVentasPorSucursal()).thenReturn(List.of(concepcion, temuco));
+
+        // WHEN
+        List<ReporteSucursalDTO> resultado = pedidoService.obtenerReportePorSucursal();
+
+        // THEN: ordenado de mayor a menor por monto total vendido
+        assertEquals(2, resultado.size());
+        assertEquals("Temuco", resultado.get(0).getSucursal());
+        assertEquals("Concepción", resultado.get(1).getSucursal());
+    }
+
+    @Test
+    void obtenerReportePorAutor_DebeAgruparLibrosDelMismoAutor() {
+        // GIVEN: dos libros distintos, mismo autor
+        VentasPorLibroProjection libro1 = org.mockito.Mockito.mock(VentasPorLibroProjection.class);
+        when(libro1.getLibroId()).thenReturn(1L);
+        when(libro1.getCantidadVendida()).thenReturn(3L);
+        when(libro1.getTotalVentas()).thenReturn(30000.0);
+
+        VentasPorLibroProjection libro2 = org.mockito.Mockito.mock(VentasPorLibroProjection.class);
+        when(libro2.getLibroId()).thenReturn(2L);
+        when(libro2.getCantidadVendida()).thenReturn(1L);
+        when(libro2.getTotalVentas()).thenReturn(20000.0);
+
+        when(pedidoRepository.obtenerVentasPorLibro()).thenReturn(List.of(libro1, libro2));
+
+        LibroRentDTO autorMock = new LibroRentDTO();
+        autorMock.setAutor("Isabel Allende");
+        when(catalogoClient.obtenerLibroPorId(1L)).thenReturn(autorMock);
+        when(catalogoClient.obtenerLibroPorId(2L)).thenReturn(autorMock);
+
+        // WHEN
+        List<ReporteAutorDTO> resultado = pedidoService.obtenerReportePorAutor();
+
+        // THEN: se combinan en una sola entrada por autor
+        assertEquals(1, resultado.size());
+        assertEquals("Isabel Allende", resultado.get(0).getAutor());
+        assertEquals(4L, resultado.get(0).getCantidadVendida());
+        assertEquals(50000.0, resultado.get(0).getTotalVentas());
+    }
+
+    @Test
+    void obtenerReportePorAutor_CuandoCatalogoNoResponde_DebeUsarAutorDesconocido() {
+        // GIVEN
+        VentasPorLibroProjection libro = org.mockito.Mockito.mock(VentasPorLibroProjection.class);
+        when(libro.getLibroId()).thenReturn(1L);
+        when(libro.getCantidadVendida()).thenReturn(2L);
+        when(libro.getTotalVentas()).thenReturn(10000.0);
+
+        when(pedidoRepository.obtenerVentasPorLibro()).thenReturn(List.of(libro));
+        when(catalogoClient.obtenerLibroPorId(1L)).thenThrow(new RuntimeException("timeout"));
+
+        // WHEN
+        List<ReporteAutorDTO> resultado = pedidoService.obtenerReportePorAutor();
+
+        // THEN: no se propaga la excepción, se agrupa como "Autor desconocido"
+        assertEquals(1, resultado.size());
+        assertEquals("Autor desconocido", resultado.get(0).getAutor());
     }
 }

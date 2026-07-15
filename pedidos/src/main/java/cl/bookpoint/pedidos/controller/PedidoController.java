@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import cl.bookpoint.pedidos.dto.PedidoDTO;
+import cl.bookpoint.pedidos.dto.ReporteAutorDTO;
+import cl.bookpoint.pedidos.dto.ReporteSucursalDTO;
 import cl.bookpoint.pedidos.model.Pedido;
 import cl.bookpoint.pedidos.service.PedidoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,5 +65,17 @@ public class PedidoController {
         model.add(linkTo(methodOn(PedidoController.class).obtenerPorId(id)).withSelfRel());
         model.add(linkTo(methodOn(PedidoController.class).obtenerTodos()).withRel("listar"));
         return ResponseEntity.ok(model);
+    }
+
+    @GetMapping("/reportes/por-sucursal")
+    @Operation(summary = "Reporte de ventas por sucursal", description = "Totaliza cantidad de pedidos y monto vendido, agrupado por sucursal")
+    public ResponseEntity<List<ReporteSucursalDTO>> reportePorSucursal() {
+        return ResponseEntity.ok(pedidoService.obtenerReportePorSucursal());
+    }
+
+    @GetMapping("/reportes/por-autor")
+    @Operation(summary = "Reporte de ventas por autor", description = "Totaliza unidades vendidas y monto, agrupado por autor del libro (vía catálogo)")
+    public ResponseEntity<List<ReporteAutorDTO>> reportePorAutor() {
+        return ResponseEntity.ok(pedidoService.obtenerReportePorAutor());
     }
 }

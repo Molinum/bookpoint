@@ -1,6 +1,8 @@
 package cl.bookpoint.pedidos.controller;
 
 import cl.bookpoint.pedidos.dto.PedidoDTO;
+import cl.bookpoint.pedidos.dto.ReporteAutorDTO;
+import cl.bookpoint.pedidos.dto.ReporteSucursalDTO;
 import cl.bookpoint.pedidos.exception.RecursoNoEncontradoException;
 import cl.bookpoint.pedidos.model.Pedido;
 import cl.bookpoint.pedidos.service.PedidoService;
@@ -129,5 +131,30 @@ class PedidoControllerTest {
 
         mockMvc.perform(get("/api/v1/pedidos/99"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/pedidos/reportes/por-sucursal debería retornar 200 con el reporte")
+    void reportePorSucursalDeberiaRetornar200() throws Exception {
+        when(pedidoService.obtenerReportePorSucursal())
+                .thenReturn(List.of(new ReporteSucursalDTO("Concepción", 5L, 79950.0)));
+
+        mockMvc.perform(get("/api/v1/pedidos/reportes/por-sucursal"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].sucursal").value("Concepción"))
+                .andExpect(jsonPath("$[0].cantidadPedidos").value(5))
+                .andExpect(jsonPath("$[0].totalVentas").value(79950.0));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/pedidos/reportes/por-autor debería retornar 200 con el reporte")
+    void reportePorAutorDeberiaRetornar200() throws Exception {
+        when(pedidoService.obtenerReportePorAutor())
+                .thenReturn(List.of(new ReporteAutorDTO("Gabriel García Márquez", 3L, 47970.0)));
+
+        mockMvc.perform(get("/api/v1/pedidos/reportes/por-autor"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].autor").value("Gabriel García Márquez"))
+                .andExpect(jsonPath("$[0].cantidadVendida").value(3));
     }
 }
